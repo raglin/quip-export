@@ -7,11 +7,10 @@ A command-line tool to export and download your documents from Quip to local sto
 ### 1. Installation
 
 ```bash
-# Install globally via npm
-npm install -g quip-bulk-export
 
-# Or run directly with npx
-npx quip-export --help
+# Install globally via npm
+npm install -g ./
+
 ```
 
 ### 2. First Time Setup
@@ -72,19 +71,19 @@ quip-export export --limit 5 --output ./test-export
 
 #### Option 1: Global Installation (Recommended)
 ```bash
-npm install -g quip-bulk-export
+npm install -g quip-export
 ```
 
 #### Option 2: Local Installation
 ```bash
-npm install quip-bulk-export
-npx quip-bulk-export --help
+npm install quip-export
+npx quip-export --help
 ```
 
 #### Option 3: From Source
 ```bash
-git clone https://github.com/your-org/quip-bulk-export.git
-cd quip-bulk-export
+git clone https://github.com/your-org/quip-export.git
+cd quip-export
 npm install
 npm run build
 npm link

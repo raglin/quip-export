@@ -1,5 +1,5 @@
 {
-  "name": "quip-bulk-export",
+  "name": "quip-export",
   "version": "1.0.0",
   "description": "A command-line tool to export and download documents from Quip to local storage while preserving folder structure",
   "main": "dist/index.js",
@@ -34,13 +34,13 @@
     "html"
   ],
   "author": "Quip Bulk Export Team",
-  "homepage": "https://github.com/your-org/quip-bulk-export#readme",
+  "homepage": "https://github.com/your-org/quip-export#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/quip-bulk-export.git"
+    "url": "https://github.com/your-org/quip-export.git"
   },
   "bugs": {
-    "url": "https://github.com/your-org/quip-bulk-export/issues"
+    "url": "https://github.com/your-org/quip-export/issues"
   },
   "license": "MIT",
   "engines": {

@@ -37,8 +37,8 @@ This project adheres to a code of conduct that we expect all contributors to fol
 
 1. **Fork and Clone**
    ```bash
-   git clone https://github.com/your-username/quip-bulk-export.git
-   cd quip-bulk-export
+   git clone https://github.com/your-username/quip-export.git
+   cd quip-export
    ```
 
 2. **Install Dependencies**

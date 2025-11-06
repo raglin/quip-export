@@ -601,7 +601,7 @@ Include:
 
 - **GitHub Issues**: Report bugs and get help
 - **Documentation**: Check README and docs folder
-- **Stack Overflow**: Tag questions with `quip-bulk-export`
+- **Stack Overflow**: Tag questions with `quip-export`
 
 ### Emergency Workarounds
 

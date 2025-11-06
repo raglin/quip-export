@@ -89,7 +89,7 @@ exports/
 debug-*.js
 test-*.js
 explore-*.js
-quip-bulk-export.js
+quip-export.js
 
 # Git files
 .git/

@@ -56,7 +56,7 @@ jest.config.js
 debug-*.js
 test-*.js
 explore-*.js
-quip-bulk-export.js
+quip-export.js
 
 # Temporary files and exports
 exported-documents/

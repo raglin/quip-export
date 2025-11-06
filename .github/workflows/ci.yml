@@ -162,7 +162,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@v5
       with:
-        images: quip-bulk-export/quip-export
+        images: quip-export/quip-export
         tags: |
           type=ref,event=branch
           type=ref,event=pr

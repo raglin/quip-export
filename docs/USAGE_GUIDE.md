@@ -18,7 +18,7 @@ This comprehensive guide provides detailed examples and workflows for using the 
 
 ```bash
 # 1. Install the tool
-npm install -g quip-bulk-export
+npm install -g quip-export
 
 # 2. Verify installation
 quip-export --version
@@ -532,7 +532,7 @@ for backup in $(find ./backups -type d -mtime -7); do
 done
 
 # Update tool
-npm update -g quip-bulk-export
+npm update -g quip-export
 ```
 
 This usage guide provides comprehensive examples for all common scenarios. Adapt the examples to your specific needs and environment.

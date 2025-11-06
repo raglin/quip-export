@@ -143,8 +143,8 @@ This is the first stable release of the Quip Bulk Export Tool. The tool has been
 - Export workflow changed to local-first approach
 
 **Upgrade Instructions:**
-1. Uninstall previous version: `npm uninstall -g quip-to-onedrive-migration`
-2. Install new version: `npm install -g quip-bulk-export`
+1. Uninstall previous version: `npm uninstall -g quip-export`
+2. Install new version: `npm install -g quip-export`
 3. Run setup: `quip-export auth setup`
 4. Update any automation scripts to use new command name
 

@@ -24,7 +24,7 @@ This is the easiest method for most users:
 
 ```bash
 # Install globally
-npm install -g quip-bulk-export
+npm install -g quip-export
 
 # Verify installation
 quip-export --version
@@ -36,7 +36,7 @@ quip-export --help
 **Advantages:**
 - Available from any directory
 - Simple command: `quip-export`
-- Automatic updates with `npm update -g quip-bulk-export`
+- Automatic updates with `npm update -g quip-export`
 
 ### Method 2: Local Installation via npm
 
@@ -48,13 +48,13 @@ mkdir quip-export-project
 cd quip-export-project
 
 # Install locally
-npm install quip-bulk-export
+npm install quip-export
 
 # Run with npx
-npx quip-bulk-export --help
+npx quip-export --help
 
 # Or add to package.json scripts
-echo '{"scripts": {"export": "quip-bulk-export"}}' > package.json
+echo '{"scripts": {"export": "quip-export"}}' > package.json
 npm run export -- --help
 ```
 
@@ -69,8 +69,8 @@ For environments without npm access:
 
 ```bash
 # Download source
-git clone https://github.com/your-org/quip-bulk-export.git
-cd quip-bulk-export
+git clone https://github.com/your-org/quip-export.git
+cd quip-export
 
 # Install dependencies
 npm install
@@ -91,10 +91,10 @@ Run without installing:
 
 ```bash
 # Run directly with npx
-npx quip-bulk-export --help
+npx quip-export --help
 
 # Export documents
-npx quip-bulk-export export --output ./my-backup
+npx quip-export export --output ./my-backup
 ```
 
 **Advantages:**
@@ -121,7 +121,7 @@ npx quip-bulk-export export --output ./my-backup
 #### Installation
 ```cmd
 # Open Command Prompt or PowerShell as Administrator
-npm install -g quip-bulk-export
+npm install -g quip-export
 
 # Verify
 quip-export --version
@@ -143,8 +143,8 @@ setx PATH "%PATH%;C:\Users\YourName\AppData\Roaming\npm"
 **Issue**: Permission errors
 ```cmd
 # Run as Administrator or use local installation
-npm install quip-bulk-export
-npx quip-bulk-export --help
+npm install quip-export
+npx quip-export --help
 ```
 
 ### macOS
@@ -171,7 +171,7 @@ npx quip-bulk-export --help
 #### Installation
 ```bash
 # Install globally
-npm install -g quip-bulk-export
+npm install -g quip-export
 
 # Verify
 quip-export --version
@@ -182,18 +182,18 @@ quip-export --version
 **Issue**: Permission errors with global install
 ```bash
 # Option 1: Use sudo (not recommended)
-sudo npm install -g quip-bulk-export
+sudo npm install -g quip-export
 
 # Option 2: Configure npm to use different directory
 mkdir ~/.npm-global
 npm config set prefix '~/.npm-global'
 echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bash_profile
 source ~/.bash_profile
-npm install -g quip-bulk-export
+npm install -g quip-export
 
 # Option 3: Use local installation
-npm install quip-bulk-export
-npx quip-bulk-export --help
+npm install quip-export
+npx quip-export --help
 ```
 
 ### Linux (Ubuntu/Debian)
@@ -218,14 +218,14 @@ npm --version
 #### Installation
 ```bash
 # Install globally
-sudo npm install -g quip-bulk-export
+sudo npm install -g quip-export
 
 # Or without sudo (recommended)
 mkdir ~/.npm-global
 npm config set prefix '~/.npm-global'
 echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
 source ~/.bashrc
-npm install -g quip-bulk-export
+npm install -g quip-export
 
 # Verify
 quip-export --version
@@ -258,7 +258,7 @@ For containerized environments:
 FROM node:18-alpine
 
 # Install the tool globally
-RUN npm install -g quip-bulk-export
+RUN npm install -g quip-export
 
 # Create working directory
 WORKDIR /exports
@@ -317,7 +317,7 @@ quip-export auth test
 quip-export --version
 
 # Update to latest
-npm update -g quip-bulk-export
+npm update -g quip-export
 
 # Verify update
 quip-export --version
@@ -326,28 +326,28 @@ quip-export --version
 ### Local Installation
 ```bash
 # In project directory
-npm update quip-bulk-export
+npm update quip-export
 
 # Or reinstall
-npm install quip-bulk-export@latest
+npm install quip-export@latest
 ```
 
 ## Uninstalling
 
 ### Global Installation
 ```bash
-npm uninstall -g quip-bulk-export
+npm uninstall -g quip-export
 ```
 
 ### Local Installation
 ```bash
-npm uninstall quip-bulk-export
+npm uninstall quip-export
 ```
 
 ### Complete Cleanup
 ```bash
 # Remove global installation
-npm uninstall -g quip-bulk-export
+npm uninstall -g quip-export
 
 # Clear npm cache
 npm cache clean --force
@@ -392,7 +392,7 @@ npm config get registry
 npm config set registry https://registry.npmjs.org/
 
 # Install with verbose logging
-npm install -g quip-bulk-export --verbose
+npm install -g quip-export --verbose
 ```
 
 #### Proxy Issues
@@ -426,8 +426,8 @@ For contributors and developers:
 
 ```bash
 # Clone repository
-git clone https://github.com/your-org/quip-bulk-export.git
-cd quip-bulk-export
+git clone https://github.com/your-org/quip-export.git
+cd quip-export
 
 # Install dependencies
 npm install

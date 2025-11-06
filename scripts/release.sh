@@ -159,7 +159,7 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     print_status "  3. Build and push Docker image"
     print_status "  4. Create GitHub release"
     
-    print_status "Monitor the progress at: https://github.com/your-org/quip-bulk-export/actions"
+    print_status "Monitor the progress at: https://github.com/your-org/quip-export/actions"
 else
     print_warning "Release cancelled. Rolling back changes..."
     git reset --hard HEAD~1
