@@ -90,7 +90,7 @@ export async function validateEnvironmentConfig(config?: EnvironmentConfig): Pro
 /**
  * Get configuration summary for display
  */
-export function getConfigurationSummary(config?: EnvironmentConfig): Record<string, any> {
+export function getConfigurationSummary(config?: EnvironmentConfig): Record<string, unknown> {
   const envConfig = config || loadEnvironmentConfig();
   
   return {

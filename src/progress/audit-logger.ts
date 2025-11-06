@@ -12,7 +12,7 @@ export interface AuditEvent {
   target?: string;
   operation: string;
   status: 'started' | 'completed' | 'failed';
-  details?: any;
+  details?: Record<string, unknown>;
   error?: string;
   duration?: number;
 }

@@ -59,7 +59,7 @@ describe('Export Orchestration Integration', () => {
       stateManager.startExport();
       
       stateManager.startDocumentExport('doc1', 'Test Document', 'Private');
-      stateManager.completeDocumentExport('doc1', '/path/test.docx', 1024);
+      stateManager.completeDocumentExport();
       
       const progress = stateManager.getProgress();
       expect(progress.current).toBe(1);

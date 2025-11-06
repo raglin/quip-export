@@ -432,11 +432,7 @@ export class ExportOrchestrator {
         task.fileSize = writeResult.size;
         task.exportedAt = new Date();
 
-        this.stateManager.completeDocumentExport(
-          task.documentId,
-          writeResult.filePath!,
-          writeResult.size || 0
-        );
+        this.stateManager.completeDocumentExport();
 
         this.logger.debug(`Successfully exported: ${task.documentTitle}`);
         return;

@@ -189,7 +189,7 @@ export class ExportStateManager {
   /**
    * Mark a document export as completed successfully
    */
-  completeDocumentExport(_documentId: string, _filePath: string, _fileSize: number): void {
+  completeDocumentExport(): void {
     const state = this.currentSession!.state;
     
     this.updateState({

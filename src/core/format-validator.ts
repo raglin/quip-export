@@ -250,8 +250,7 @@ export class FormatValidator {
    * Check if graceful degradation is possible for unavailable formats
    */
   getGracefulDegradationOptions(
-    unavailableFormats: string[], 
-    _documentType?: string
+    unavailableFormats: string[]
   ): { [format: string]: string[] } {
     const alternatives: { [format: string]: string[] } = {};
 

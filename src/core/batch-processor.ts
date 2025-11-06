@@ -7,7 +7,7 @@ export interface BatchItem {
   priority: number;
   retryCount: number;
   status: 'pending' | 'processing' | 'completed' | 'failed' | 'skipped';
-  data?: any;
+  data?: unknown;
   error?: string;
 }
 

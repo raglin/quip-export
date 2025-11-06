@@ -5,7 +5,7 @@
 
 import { AuthManager, createQuipConfig } from './index';
 
-async function exampleUsage() {
+async function exampleUsage(): Promise<void> {
   // Create configuration with personal access token
   const quipConfig = createQuipConfig(
     process.env.QUIP_PERSONAL_ACCESS_TOKEN || 'your-personal-access-token'

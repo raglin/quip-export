@@ -29,7 +29,7 @@ export interface IStateManager {
 }
 
 export interface IErrorHandler {
-  handleError(error: Error, context: any): Promise<boolean>; // returns true if should retry
+  handleError(error: Error, context: Record<string, unknown>): Promise<boolean>; // returns true if should retry
   categorizeError(error: Error): 'auth' | 'api' | 'file' | 'permission' | 'network' | 'unknown';
   shouldRetry(error: Error, retryCount: number): boolean;
 }

@@ -359,9 +359,9 @@ export class ProgressTracker extends EventEmitter {
       
       // Show format status summary
       const formatStatuses = Object.entries(formatProgress.formatResults);
-      const successCount = formatStatuses.filter(([_, status]) => status === 'success').length;
-      const failedCount = formatStatuses.filter(([_, status]) => status === 'failed').length;
-      const processingCount = formatStatuses.filter(([_, status]) => status === 'processing').length;
+      const successCount = formatStatuses.filter(([, status]) => status === 'success').length;
+      const failedCount = formatStatuses.filter(([, status]) => status === 'failed').length;
+      const processingCount = formatStatuses.filter(([, status]) => status === 'processing').length;
       
       if (successCount > 0 || failedCount > 0 || processingCount > 0) {
         const statusParts = [];

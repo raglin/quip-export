@@ -9,8 +9,12 @@ A command-line tool to export and download your documents from Quip to local sto
 ```bash
 
 # Install globally via npm
-npm install -g ./
+npm install -g @anthragz/quip-export
 
+# OR Build locally and link
+npm install
+npm run build
+npm link
 ```
 
 ### 2. First Time Setup

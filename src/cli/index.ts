@@ -22,7 +22,7 @@ function promptUser(question: string): Promise<string> {
       input: process.stdin,
       output: process.stdout
     });
-    
+
     rl.question(question, (answer) => {
       rl.close();
       resolve(answer.trim());
@@ -37,19 +37,19 @@ function promptUserMasked(question: string): Promise<string> {
       input: process.stdin,
       output: process.stdout
     });
-    
+
     // Display the question immediately
     process.stdout.write(question);
-    
+
     // Disable echo for password input
     const stdin = process.stdin;
     stdin.setRawMode(true);
-    
+
     let input = '';
-    
+
     const onData = (char: Buffer) => {
       const c = char.toString();
-      
+
       switch (c) {
         case '\n':
         case '\r':
@@ -82,7 +82,7 @@ function promptUserMasked(question: string): Promise<string> {
           break;
       }
     };
-    
+
     stdin.on('data', onData);
   });
 }
@@ -122,25 +122,25 @@ function displayDocumentsAsTable(documents: any[], verbose: boolean = false): vo
 
   // Determine if we're dealing with DocumentWithPath objects or plain documents
   const isDocumentWithPath = documents[0].document !== undefined;
-  
+
   console.log('📋 Documents:');
   console.log('─'.repeat(120));
-  
+
   if (verbose) {
     // Verbose table format
-    console.log('ID'.padEnd(15) + 
-                'Title'.padEnd(40) + 
-                'Type'.padEnd(12) + 
-                'Created'.padEnd(12) + 
-                'Folder'.padEnd(25) + 
-                'Shared'.padEnd(8));
+    console.log('ID'.padEnd(15) +
+      'Title'.padEnd(40) +
+      'Type'.padEnd(12) +
+      'Created'.padEnd(12) +
+      'Folder'.padEnd(25) +
+      'Shared'.padEnd(8));
     console.log('─'.repeat(120));
-    
+
     documents.forEach(item => {
       const doc = isDocumentWithPath ? item.document : item;
       const folderPath = isDocumentWithPath ? item.folderPath : 'Documents';
       const isShared = isDocumentWithPath ? item.isShared : false;
-      
+
       console.log(
         truncateText(doc.id, 14).padEnd(15) +
         truncateText(doc.title, 39).padEnd(40) +
@@ -152,16 +152,16 @@ function displayDocumentsAsTable(documents: any[], verbose: boolean = false): vo
     });
   } else {
     // Compact table format
-    console.log('Title'.padEnd(50) + 
-                'Type'.padEnd(12) + 
-                'Created'.padEnd(12) + 
-                'Folder'.padEnd(30));
+    console.log('Title'.padEnd(50) +
+      'Type'.padEnd(12) +
+      'Created'.padEnd(12) +
+      'Folder'.padEnd(30));
     console.log('─'.repeat(120));
-    
+
     documents.forEach(item => {
       const doc = isDocumentWithPath ? item.document : item;
       const folderPath = isDocumentWithPath ? item.folderPath : 'Documents';
-      
+
       console.log(
         truncateText(doc.title, 49).padEnd(50) +
         (doc.type || 'DOCUMENT').padEnd(12) +
@@ -170,7 +170,7 @@ function displayDocumentsAsTable(documents: any[], verbose: boolean = false): vo
       );
     });
   }
-  
+
   console.log('─'.repeat(120));
 }
 
@@ -179,15 +179,15 @@ function displayDocumentsAsCsv(documents: any[], verbose: boolean = false): void
   if (documents.length === 0) return;
 
   const isDocumentWithPath = documents[0].document !== undefined;
-  
+
   if (verbose) {
     console.log('ID,Title,Type,Created,Updated,Author,Company,Link,Folder,Shared,Template,Deleted');
-    
+
     documents.forEach(item => {
       const doc = isDocumentWithPath ? item.document : item;
       const folderPath = isDocumentWithPath ? item.folderPath : 'Documents';
       const isShared = isDocumentWithPath ? item.isShared : false;
-      
+
       console.log([
         `"${doc.id}"`,
         `"${doc.title.replace(/"/g, '""')}"`,
@@ -205,11 +205,11 @@ function displayDocumentsAsCsv(documents: any[], verbose: boolean = false): void
     });
   } else {
     console.log('Title,Type,Created,Folder');
-    
+
     documents.forEach(item => {
       const doc = isDocumentWithPath ? item.document : item;
       const folderPath = isDocumentWithPath ? item.folderPath : 'Documents';
-      
+
       console.log([
         `"${doc.title.replace(/"/g, '""')}"`,
         `"${doc.type}"`,
@@ -224,38 +224,38 @@ function displayDocumentsAsCsv(documents: any[], verbose: boolean = false): void
 async function validateFormatOptions(config: any): Promise<{ valid: boolean; errors: string[]; warnings: string[] }> {
   const errors: string[] = [];
   const warnings: string[] = [];
-  
+
   // Get the configuration object (handle nested structure)
   const exportConfig = config.export || config;
   const formats = exportConfig.exportFormats || [exportConfig.exportFormat || 'docx'];
   const formatOptions = exportConfig.formatSpecificOptions || {};
-  
+
   // Import FormatValidator for capability checking
   try {
     const { FormatValidator } = await import('../core/format-validator');
     const validator = new FormatValidator();
-    
+
     // Validate format capabilities and dependencies
     const validation = await validator.validateFormatSelection(formats);
-    
+
     if (!validation.valid) {
       errors.push(...validation.errors);
     }
-    
+
     warnings.push(...validation.warnings);
-    
+
     // Add dependency installation instructions for unavailable formats
     const unavailableFormats = validation.capabilities
       .filter(cap => !cap.available && formats.includes(cap.format))
       .map(cap => cap.format);
-    
+
     for (const format of unavailableFormats) {
       const instructions = validator.getDependencyInstructions(format);
       if (instructions.length > 0) {
         warnings.push(`To enable ${format} export: ${instructions.join(', ')}`);
       }
     }
-    
+
   } catch (importError) {
     // Fallback to basic validation if FormatValidator import fails
     const supportedFormats = ['docx', 'html', 'markdown'];
@@ -264,29 +264,29 @@ async function validateFormatOptions(config: any): Promise<{ valid: boolean; err
       errors.push(`Unsupported export formats: ${invalidFormats.join(', ')}. Supported formats: ${supportedFormats.join(', ')}`);
     }
   }
-  
+
   // Validate markdown options if markdown format is selected
   if (formats.includes('markdown') && formatOptions.markdown) {
     const markdownOptions = formatOptions.markdown;
-    
+
     if (markdownOptions.imageHandling && !['inline', 'separate', 'skip'].includes(markdownOptions.imageHandling)) {
       errors.push(`Invalid markdown image handling option: ${markdownOptions.imageHandling}. Valid options: inline, separate, skip`);
     }
-    
+
     if (markdownOptions.preserveComments !== undefined && typeof markdownOptions.preserveComments !== 'boolean') {
       errors.push(`Markdown preserveComments option must be a boolean value`);
     }
-    
+
     if (markdownOptions.frontMatter !== undefined && typeof markdownOptions.frontMatter !== 'boolean') {
       errors.push(`Markdown frontMatter option must be a boolean value`);
     }
   }
-  
+
   // Validate format directory option
   if (exportConfig.useFormatDirectories !== undefined && typeof exportConfig.useFormatDirectories !== 'boolean') {
     errors.push(`useFormatDirectories option must be a boolean value`);
   }
-  
+
   return {
     valid: errors.length === 0,
     errors,
@@ -298,7 +298,7 @@ async function validateFormatOptions(config: any): Promise<{ valid: boolean; err
 function migrateConfiguration(config: any): any {
   let migrated = false;
   const migratedConfig = { ...config };
-  
+
   // Migrate single exportFormat to exportFormats array
   if (config.exportFormat && !config.exportFormats) {
     if (config.exportFormat === 'both') {
@@ -311,7 +311,7 @@ function migrateConfiguration(config: any): any {
     }
     migrated = true;
   }
-  
+
   // Migrate nested export configuration
   if (config.export) {
     if (config.export.exportFormat && !config.export.exportFormats) {
@@ -325,35 +325,35 @@ function migrateConfiguration(config: any): any {
       migrated = true;
     }
   }
-  
+
   // Ensure format-specific options exist
   if (!migratedConfig.formatSpecificOptions && !migratedConfig.export?.formatSpecificOptions) {
     const targetConfig = migratedConfig.export || migratedConfig;
     targetConfig.formatSpecificOptions = {};
     migrated = true;
   }
-  
+
   // Add migration timestamp if changes were made
   if (migrated) {
     migratedConfig.migratedAt = new Date().toISOString();
     migratedConfig.migrationVersion = '1.0.0';
   }
-  
+
   return migratedConfig;
 }
 
 // Helper function to load configuration from file or environment
 async function loadConfiguration(): Promise<any> {
   const configPath = '.export-config.json';
-  
+
   try {
     // Try to load from config file first
     const configFile = await fs.readFile(configPath, 'utf8');
     const fileConfig = JSON.parse(configFile);
-    
+
     // Migrate configuration if needed
     const migratedConfig = migrateConfiguration(fileConfig);
-    
+
     // Validate configuration
     const validation = await validateFormatOptions(migratedConfig);
     if (!validation.valid) {
@@ -362,13 +362,13 @@ async function loadConfiguration(): Promise<any> {
       console.error('\n💡 Run "quip-export export configure" to fix configuration issues.');
       throw new Error('Invalid configuration');
     }
-    
+
     // Show warnings if any
     if (validation.warnings.length > 0) {
       console.warn('\n⚠️  Configuration warnings:');
       validation.warnings.forEach(warning => console.warn(`  • ${warning}`));
     }
-    
+
     // Save migrated configuration if changes were made
     if (migratedConfig.migratedAt && migratedConfig.migratedAt !== fileConfig.migratedAt) {
       try {
@@ -379,13 +379,13 @@ async function loadConfiguration(): Promise<any> {
         console.log('⚠️  Configuration migrated in memory (could not save to file)');
       }
     }
-    
+
     return migratedConfig;
   } catch {
     // Fall back to environment variables for Quip only
     const { loadConfigFromEnv } = await import('../auth/config');
     const envConfig = loadConfigFromEnv();
-    
+
     return {
       quip: envConfig.quip
     };
@@ -395,7 +395,7 @@ async function loadConfiguration(): Promise<any> {
 // Helper function to get auth manager with configuration
 async function getAuthManager(): Promise<AuthManager | null> {
   const config = await loadConfiguration();
-  
+
   if (!config.quip) {
     console.error('❌ Authentication configuration missing!');
     console.error('');
@@ -404,17 +404,17 @@ async function getAuthManager(): Promise<AuthManager | null> {
     console.error('');
     console.error('🔧 Manual Setup:');
     console.error('   Set these environment variables:');
-    
+
     if (!config.quip) {
       console.error('   - QUIP_PERSONAL_ACCESS_TOKEN (required)');
       console.error('   - QUIP_DOMAIN (optional, defaults to quip.com)');
     }
-    
 
-    
+
+
     return null;
   }
-  
+
   return new AuthManager(config.quip);
 }
 
@@ -432,11 +432,11 @@ program
 
       // Check if config already exists
       const configPath = '.export-config.json';
-      
+
       try {
         await fs.access(configPath);
         console.log('✅ Found existing configuration');
-        
+
         const useExisting = await promptUser('Use existing configuration? (y/n): ');
         if (useExisting.toLowerCase() === 'y' || useExisting.toLowerCase() === 'yes') {
           console.log('Configuration ready! You can now run "quip-export list" to see your documents.');
@@ -452,6 +452,7 @@ program
       // Get domain configuration
       console.log('🌐 Quip Domain Configuration:');
       console.log('Enter your Quip domain (e.g., quip.com for public, quip-enterprise.com for enterprise)');
+      console.log('Do not include https:// ');
       const quipDomain = await promptUser('Quip domain (press Enter for quip.com): ') || 'quip.com';
 
       // Validate domain format
@@ -477,7 +478,7 @@ program
       console.log('');
 
       const personalToken = await promptUserMasked('Enter your personal access token: ');
-      
+
       if (!personalToken.trim()) {
         console.error('❌ Personal access token is required');
         process.exit(1);
@@ -486,7 +487,7 @@ program
       // Export preferences
       console.log('\n📋 Export Preferences');
       const outputDirectory = await promptUser('Output directory (default: "./exported-documents"): ') || './exported-documents';
-      
+
       // Simplified format selection with clear options
       console.log('\n📄 Export Format Configuration:');
       console.log('Available formats:');
@@ -494,10 +495,10 @@ program
       console.log('  2. HTML - Universal web format (works everywhere)');
       console.log('  3. Markdown - Plain text markup (version control friendly)');
       console.log('');
-      
+
       const formatChoice = await promptUser('Choose format (1=native, 2=html, 3=markdown, default: native): ') || '1';
       let exportFormat: string;
-      
+
       switch (formatChoice) {
         case '2':
           exportFormat = 'html';
@@ -510,7 +511,7 @@ program
           exportFormat = 'native';
           break;
       }
-      
+
       // Format-specific options for markdown
       let markdownOptions: any = {};
       if (exportFormat === 'markdown') {
@@ -518,14 +519,14 @@ program
         const imageHandling = await promptUser('Image handling (1=inline, 2=separate files, 3=skip, default: separate): ') || '2';
         const preserveComments = await promptUser('Preserve Quip comments as markdown comments? (y/n, default: n): ');
         const frontMatter = await promptUser('Include document metadata as front matter? (y/n, default: y): ');
-        
+
         markdownOptions = {
           imageHandling: imageHandling === '1' ? 'inline' : imageHandling === '3' ? 'skip' : 'separate',
           preserveComments: preserveComments.toLowerCase() === 'y' || preserveComments.toLowerCase() === 'yes',
           frontMatter: frontMatter.toLowerCase() !== 'n' && frontMatter.toLowerCase() !== 'no'
         };
       }
-      
+
       const includeShared = await promptUser('Include shared documents? (y/n, default: y): ');
       const preserveFolders = await promptUser('Preserve folder structure? (y/n, default: y): ');
 
@@ -557,7 +558,7 @@ program
         const quipConfig = createQuipConfig(personalToken.trim(), quipDomain);
         const tempAuthManager = new AuthManager(quipConfig);
         const authResult = await tempAuthManager.authenticateQuip();
-        
+
         if (!authResult.success) {
           console.error('❌ Token validation failed:', authResult.error);
           console.error('');
@@ -567,7 +568,7 @@ program
           console.error('   • Try generating a new token if the current one is invalid');
           process.exit(1);
         }
-        
+
         console.log('✅ Personal access token validated successfully!');
       } catch (error) {
         console.error('❌ Token validation failed:', error instanceof Error ? error.message : String(error));
@@ -616,21 +617,21 @@ authCommand
 
       console.log('🔍 Authenticating with Quip...');
       const quipResult = await authManager.authenticateQuip();
-      
+
       if (quipResult.success) {
 
         const domain = config.quip?.domain || 'quip.com';
-        
+
         console.log('✅ Quip authentication successful!');
         console.log(`   Method: 🔑 Personal Access Token`);
         console.log(`   Domain: ${domain}`);
         console.log(`   Status: Ready for document export\n`);
-        
+
         console.log('🎉 Authentication complete! You can now export your documents.');
         console.log('💡 Try "quip-export list" to see your documents.');
       } else {
         console.error(`❌ Quip authentication failed: ${quipResult.error}`);
-        
+
         // Provide specific guidance for personal access token
         console.error('');
         console.error('🔧 Personal Access Token Troubleshooting:');
@@ -640,7 +641,7 @@ authCommand
         console.error('   • Try running "quip-export setup" again with a new token');
         process.exit(1);
       }
-      
+
     } catch (error) {
       console.error('❌ Authentication process failed:', error instanceof Error ? error.message : String(error));
       process.exit(1);
@@ -660,7 +661,7 @@ authCommand
       console.log('🔓 Logging out from Quip...\n');
       await authManager.logout();
       console.log('✅ Logged out from Quip successfully!');
-      
+
     } catch (error) {
       console.error('❌ Logout failed:', error instanceof Error ? error.message : String(error));
       process.exit(1);
@@ -673,7 +674,7 @@ authCommand
   .action(async () => {
     try {
       const config = await loadConfiguration();
-      
+
       console.log('🔍 Checking authentication status...\n');
 
       // Show detailed configuration information
@@ -683,7 +684,7 @@ authCommand
         const domain = config.quip.domain || 'quip.com';
         const baseUrl = config.quip.baseUrl || `https://platform.${domain}`;
         const tokenUrl = config.quip.tokenUrl || `https://${domain}/dev/token`;
-        
+
         console.log('📝 Quip Configuration:');
         console.log(`   Authentication Method: 🔑 Personal Access Token`);
         console.log(`   Domain: ${domain}`);
@@ -693,7 +694,7 @@ authCommand
       } else {
         console.log('📝 Quip Configuration: ❌ Not configured');
       }
-      
+
       console.log('');
 
       console.log('─'.repeat(50));
@@ -710,11 +711,11 @@ authCommand
       console.log('\n📊 Authentication Status:');
       console.log(`  Quip: ${status.quip ? '✅ Authenticated' : '❌ Not authenticated'}`);
 
-      
+
       console.log('\n🔐 Token Validation & Status:');
       if (validation.valid) {
         console.log('  ✅ All tokens are valid and ready for use');
-        
+
         // Show additional token information if available
         console.log('  📝 Quip: Personal access token is active');
 
@@ -723,7 +724,7 @@ authCommand
         validation.errors.forEach(error => {
           console.log(`    • ${error}`);
         });
-        
+
         // Provide specific guidance for personal access token
         console.log('\n🔧 Detailed Troubleshooting:');
         console.log('  📝 Personal Access Token Issues:');
@@ -731,7 +732,7 @@ authCommand
         console.log('    • Check if you have access to the configured Quip domain');
         console.log(`    • Generate a new token at: https://${config.quip?.domain || 'quip.com'}/dev/token`);
         console.log('    • Ensure the token was copied completely without extra spaces');
-        
+
 
       }
 
@@ -740,12 +741,12 @@ authCommand
         console.log('\n💡 Recommended Next Steps:');
         console.log('  1. Run "quip-export auth login" to authenticate with both services');
         console.log('  2. Use --quip-only flag to authenticate only with Quip');
-        
+
         console.log('  3. For personal token issues:');
         console.log(`     • Visit: https://${config.quip?.domain || 'quip.com'}/dev/token`);
         console.log('     • Generate a new token and re-run authentication');
       }
-      
+
     } catch (error) {
       console.error('❌ Status check failed:', error instanceof Error ? error.message : String(error));
       process.exit(1);
@@ -790,7 +791,7 @@ program
       // Import required services
       const { QuipService } = await import('../services/quip');
       const { ConsoleLogger } = await import('../core/logger');
-      
+
       const logger = new ConsoleLogger(options.verbose ? 'DEBUG' : 'INFO');
       const config = await loadConfiguration();
       const quipService = new QuipService(authManager, logger, config.quip);
@@ -826,7 +827,7 @@ program
 
       if (options.query) {
         // Search for documents
-        const searchMessage = filter.maxDocuments 
+        const searchMessage = filter.maxDocuments
           ? `🔍 Searching for: "${options.query}" (limit: ${filter.maxDocuments})`
           : `🔍 Searching for: "${options.query}"`;
         console.log(searchMessage);
@@ -835,7 +836,7 @@ program
         // Get documents from specific folder
         console.log(`📁 Getting documents from folder: ${options.folder}`);
         documents = await quipService.getDocumentsFromFolder(options.folder, true);
-        
+
         // Apply limit for folder-specific queries (folder discovery doesn't support early limiting yet)
         if (filter.maxDocuments && documents.length > filter.maxDocuments) {
           console.log(`📝 Showing first ${filter.maxDocuments} of ${documents.length} documents from folder\n`);
@@ -843,14 +844,14 @@ program
         }
       } else {
         // Discover all documents
-        const discoveryMessage = filter.maxDocuments 
+        const discoveryMessage = filter.maxDocuments
           ? `🔍 Discovering up to ${filter.maxDocuments} documents...`
           : '🔍 Discovering all accessible documents...';
         console.log(discoveryMessage);
-        
+
         const discovery = await quipService.discoverDocuments(filter);
         documents = discovery.documents;
-        
+
         if (options.verbose) {
           console.log(`📊 Discovery Summary:`);
           console.log(`  Total documents found: ${discovery.totalCount}`);
@@ -873,11 +874,11 @@ program
         case 'json':
           console.log(JSON.stringify(documents, null, 2));
           break;
-          
+
         case 'csv':
           displayDocumentsAsCsv(documents, options.verbose);
           break;
-          
+
         case 'table':
         default:
           displayDocumentsAsTable(documents, options.verbose);
@@ -885,7 +886,7 @@ program
       }
 
       console.log(`\n✅ Listed ${documents.length} documents successfully!`);
-      
+
       if (!options.query && !options.folder) {
         console.log('\n💡 Tips:');
         console.log('  • Use --query to search for specific documents');
@@ -924,23 +925,23 @@ exportCommand
       // Load existing configuration if available
       let config: any = {};
       const configPath = '.export-config.json';
-      
+
       try {
         const existingConfig = await fs.readFile(configPath, 'utf8');
         config = JSON.parse(existingConfig);
         console.log('✅ Found existing configuration');
-        
+
         // Show what sections exist
         const hasAuth = config.quip && config.quip.personalAccessToken;
         const hasExport = config.outputDirectory || config.export;
-        
+
         if (hasAuth) {
           console.log('   🔐 Authentication settings: Will be preserved');
         }
         if (hasExport) {
           console.log('   ⚙️  Export settings: Will be updated');
         }
-        
+
         const useExisting = await promptUser('Use existing export settings as defaults? (y/n): ');
         if (useExisting.toLowerCase() === 'n' || useExisting.toLowerCase() === 'no') {
           // Keep auth config but reset export config
@@ -953,7 +954,7 @@ exportCommand
 
       console.log('\n📁 Output Directory Configuration:');
       const defaultOutputDir = config.outputDirectory || './exported-documents';
-      const outputDirectory = options.outputDir || 
+      const outputDirectory = options.outputDir ||
         await promptUser(`Output directory (default: ${defaultOutputDir}): `) || defaultOutputDir;
 
       console.log('\n📄 Export Format Configuration:');
@@ -962,15 +963,15 @@ exportCommand
       console.log('  2. HTML - Universal web format (works everywhere)');
       console.log('  3. Markdown - Plain text markup (version control friendly)');
       console.log('');
-      
+
       // Handle existing configuration migration
       const existingFormat = config.exportFormat || 'native';
-      
+
       let exportFormat = options.format;
-      
+
       if (!exportFormat) {
         const formatChoice = await promptUser(`Choose format (1=native, 2=html, 3=markdown, default: ${existingFormat}): `) || '1';
-        
+
         switch (formatChoice) {
           case '2':
             exportFormat = 'html';
@@ -984,15 +985,15 @@ exportCommand
             break;
         }
       }
-      
+
       // Format-specific options for markdown
-      let formatSpecificOptions: any = {};
+      const formatSpecificOptions: any = {};
       if (exportFormat === 'markdown') {
         console.log('\n🔧 Markdown Format Options:');
         const imageHandling = await promptUser('Image handling (1=inline, 2=separate files, 3=skip, default: separate): ') || '2';
         const preserveComments = await promptUser('Preserve Quip comments as markdown comments? (y/n, default: n): ');
         const frontMatter = await promptUser('Include document metadata as front matter? (y/n, default: y): ');
-        
+
         formatSpecificOptions.markdown = {
           imageHandling: imageHandling === '1' ? 'inline' : imageHandling === '3' ? 'skip' : 'separate',
           preserveComments: preserveComments.toLowerCase() === 'y' || preserveComments.toLowerCase() === 'yes',
@@ -1009,7 +1010,7 @@ exportCommand
 
       console.log('\n⚡ Performance Configuration:');
       const defaultBatchSize = config.batchSize || 10;
-      const batchSizeInput = options.batchSize || 
+      const batchSizeInput = options.batchSize ||
         await promptUser(`Batch size for processing (1-50, default: ${defaultBatchSize}): `);
       const batchSize = parseInt(batchSizeInput) || defaultBatchSize;
 
@@ -1031,7 +1032,7 @@ exportCommand
       const exportConfig = {
         // Preserve existing authentication configuration
         ...(config.quip && { quip: config.quip }),
-        
+
         // Update export settings
         outputDirectory,
         exportFormat,
@@ -1049,7 +1050,7 @@ exportCommand
       // Display configuration summary
       console.log('\n📋 Configuration Summary:');
       console.log('─'.repeat(50));
-      
+
       // Show authentication status
       if (exportConfig.quip) {
         console.log('🔐 Authentication: Configured and preserved');
@@ -1057,7 +1058,7 @@ exportCommand
       } else {
         console.log('🔐 Authentication: Not configured');
       }
-      
+
       console.log('\n⚙️  Export Settings:');
       console.log(`   Output Directory: ${exportConfig.outputDirectory}`);
       console.log(`   Export Format: ${exportConfig.exportFormat.toUpperCase()}`);
@@ -1085,7 +1086,7 @@ exportCommand
         console.error('\nPlease correct the issues and try again.');
         return;
       }
-      
+
       // Show warnings if any
       if (validation.warnings.length > 0) {
         console.warn('\n⚠️  Configuration warnings:');
@@ -1098,7 +1099,7 @@ exportCommand
       if (confirmConfig.toLowerCase() === 'y' || confirmConfig.toLowerCase() === 'yes') {
         await fs.writeFile(configPath, JSON.stringify(exportConfig, null, 2));
         console.log(`✅ Export configuration saved to ${configPath}`);
-        
+
         console.log('\n🎉 Configuration Complete!');
         console.log('Next steps:');
         console.log('1. Run "quip-export export preview" to see what will be exported');
@@ -1138,7 +1139,7 @@ exportCommand
       // Load export configuration
       let exportConfig: any;
       const configPath = options.config || '.export-config.json';
-      
+
       try {
         const configFile = await fs.readFile(configPath, 'utf8');
         exportConfig = JSON.parse(configFile);
@@ -1154,7 +1155,7 @@ exportCommand
       // Import required services
       const { QuipService } = await import('../services/quip');
       const { ConsoleLogger } = await import('../core/logger');
-      
+
       const logger = new ConsoleLogger('INFO');
       const config = await loadConfiguration();
       const quipService = new QuipService(authManager, logger, config.quip);
@@ -1164,7 +1165,7 @@ exportCommand
 
       // Handle format overrides from command line for preview
       let previewFormats = exportSettings.exportFormats || [exportSettings.exportFormat || 'docx'];
-      
+
       if (options.format) {
         if (options.format.includes(',')) {
           previewFormats = options.format.split(',').map((f: string) => f.trim());
@@ -1181,7 +1182,7 @@ exportCommand
         maxDocuments: exportSettings.maxDocuments // Pass the limit to optimize discovery
       });
 
-      let documentsToExport = discovery.documents;
+      const documentsToExport = discovery.documents;
 
       // Apply preview limit
       const previewLimit = parseInt(options.limit);
@@ -1212,16 +1213,16 @@ exportCommand
       previewDocuments.forEach((docWithPath: any, index: number) => {
         const doc = docWithPath.document;
         const icon = getDocumentIcon(doc.type);
-        
+
         console.log(`${index + 1}. ${icon} ${doc.title}`);
         console.log(`   Type: ${doc.type}`);
         console.log(`   Folder: ${docWithPath.folderPath}`);
-        
+
         // Show output paths for each format
         previewFormats.forEach((format: string, formatIndex: number) => {
           const baseDir = exportSettings.outputDirectory || './exported-documents';
           const folderPath = exportSettings.preserveFolderStructure ? docWithPath.folderPath : '';
-          
+
           // Resolve native format to proper extension based on document type
           let fileExtension = format;
           if (format === 'native') {
@@ -1238,7 +1239,7 @@ exportCommand
                 break;
             }
           }
-          
+
           let outputPath: string;
           if (previewFormats.length > 1 || exportSettings.useFormatDirectories) {
             // Multi-format: organize by format directories
@@ -1247,11 +1248,11 @@ exportCommand
             // Single format: direct to output directory
             outputPath = path.join(baseDir, folderPath, `${doc.title}.${fileExtension}`);
           }
-          
+
           const label = formatIndex === 0 ? 'Output:' : '      ';
           console.log(`   ${label} ${outputPath}`);
         });
-        
+
         console.log('');
       });
 
@@ -1261,15 +1262,15 @@ exportCommand
 
       console.log('─'.repeat(60));
       console.log('📊 Export Statistics:');
-      
+
       // Calculate statistics
       const typeStats: { [key: string]: number } = {};
       const folderStats: { [key: string]: number } = {};
-      
+
       documentsToExport.forEach((docWithPath: any) => {
         const type = docWithPath.document.type;
         const folder = docWithPath.folderPath;
-        
+
         typeStats[type] = (typeStats[type] || 0) + 1;
         folderStats[folder] = (folderStats[folder] || 0) + 1;
       });
@@ -1284,7 +1285,7 @@ exportCommand
       Object.entries(folderStats).slice(0, 5).forEach(([folder, count]) => {
         console.log(`  📁 ${folder}: ${count} documents`);
       });
-      
+
       if (Object.keys(folderStats).length > 5) {
         console.log(`  ... and ${Object.keys(folderStats).length - 5} more folders`);
       }
@@ -1338,7 +1339,7 @@ exportCommand
       // Load export configuration
       let exportConfig: any;
       const configPath = options.config || '.export-config.json';
-      
+
       try {
         const configFile = await fs.readFile(configPath, 'utf8');
         exportConfig = JSON.parse(configFile);
@@ -1358,7 +1359,7 @@ exportCommand
       // Handle format overrides from command line
       let finalExportFormats = exportSettings.exportFormats || [exportSettings.exportFormat || 'docx'];
       let finalFormatOptions = exportSettings.formatSpecificOptions || {};
-      
+
       if (options.format) {
         if (options.format.includes(',')) {
           finalExportFormats = options.format.split(',').map((f: string) => f.trim());
@@ -1366,11 +1367,11 @@ exportCommand
           finalExportFormats = [options.format];
         }
       }
-      
+
       // Handle markdown-specific CLI options
       if (finalExportFormats.includes('markdown')) {
         const markdownOptions = finalFormatOptions.markdown || {};
-        
+
         if (options.markdownImages) {
           markdownOptions.imageHandling = options.markdownImages;
         }
@@ -1380,7 +1381,7 @@ exportCommand
         if (options.markdownFrontmatter !== undefined) {
           markdownOptions.frontMatter = options.markdownFrontmatter;
         }
-        
+
         finalFormatOptions = {
           ...finalFormatOptions,
           markdown: markdownOptions
@@ -1395,7 +1396,7 @@ exportCommand
       const { DirectoryManager } = await import('../services/local/directory-manager');
       const { FileWriter } = await import('../services/local/file-writer');
       const { FolderStructureMapper } = await import('../services/local/folder-structure-mapper');
-      
+
       const logger = new ConsoleLogger('INFO');
       const config = await loadConfiguration();
       const quipService = new QuipService(authManager, logger, config.quip);
@@ -1411,7 +1412,7 @@ exportCommand
       const fileWriter = new FileWriter(directoryManager, directoryConfig, logger);
       const folderMapper = new FolderStructureMapper(directoryManager, directoryConfig, logger);
       const stateManager = new ExportStateManager(logger);
-      
+
       const orchestrator = new ExportOrchestrator(
         logger,
         stateManager,
@@ -1501,7 +1502,7 @@ exportCommand
         result.errors.slice(0, 5).forEach(error => {
           console.log(`  • ${error.documentTitle}: ${error.error}`);
         });
-        
+
         if (result.errors.length > 5) {
           console.log(`  ... and ${result.errors.length - 5} more errors`);
         }
@@ -1510,7 +1511,7 @@ exportCommand
       if (result.success) {
         console.log('\n🎉 Export completed successfully!');
         console.log(`📁 Your documents are available in: ${result.outputDirectory}`);
-        
+
         console.log('\n💡 Next steps:');
         console.log('  • Review the exported documents in the output directory');
         console.log('  • Upload to your preferred cloud service (Google Drive, Dropbox, etc.)');
@@ -1538,23 +1539,23 @@ exportCommand
     try {
       console.log('📊 Export Status');
       console.log('═'.repeat(40));
-      
+
       // Check for active export sessions
       // This is a simplified implementation - in a real scenario, you'd check for running processes
       console.log('🔍 Checking for active export sessions...');
-      
+
       // Check for recent export logs or state files
       // This would typically check for active sessions
       console.log('📭 No active export sessions found.');
-      
+
       // Show recent export configuration
       try {
         const configFile = await fs.readFile('.export-config.json', 'utf8');
         const config = JSON.parse(configFile);
-        
+
         console.log('\n⚙️  Current Export Configuration:');
         console.log(`  Output Directory: ${config.outputDirectory}`);
-        
+
         // Handle both old and new format configurations
         if (config.exportFormats && config.exportFormats.length > 0) {
           console.log(`  Export Formats: ${config.exportFormats.map((f: string) => f.toUpperCase()).join(', ')}`);
@@ -1570,7 +1571,7 @@ exportCommand
         } else {
           console.log(`  Export Format: ${config.exportFormat?.toUpperCase() || 'DOCX'}`);
         }
-        
+
         console.log(`  Include Shared: ${config.includeSharedDocuments ? 'Yes' : 'No'}`);
         console.log(`  Batch Size: ${config.batchSize}`);
         console.log(`  Last Updated: ${new Date(config.updatedAt).toLocaleString()}`);
@@ -1578,7 +1579,7 @@ exportCommand
         console.log('\n❌ No export configuration found.');
         console.log('💡 Run "quip-export export configure" to set up export preferences.');
       }
-      
+
       console.log('\n💡 Available commands:');
       console.log('  • quip-export export configure - Set up export preferences');
       console.log('  • quip-export export preview - Preview what will be exported');
@@ -1604,7 +1605,7 @@ exportCommand
       // Check for recent export data
       const exportDataPath = '.export-data.json';
       let exportData: any = null;
-      
+
       try {
         const dataFile = await fs.readFile(exportDataPath, 'utf8');
         exportData = JSON.parse(dataFile);
@@ -1616,7 +1617,7 @@ exportCommand
 
       // Generate report based on format
       switch (options.format.toLowerCase()) {
-        case 'json':
+        case 'json': {
           const jsonReport = {
             sessionId: exportData.sessionId || 'unknown',
             timestamp: new Date().toISOString(),
@@ -1633,16 +1634,16 @@ exportCommand
             console.log(JSON.stringify(jsonReport, null, 2));
           }
           break;
-
-        case 'html':
+        }
+        case 'html': {
           const htmlReport = generateHtmlReport(exportData);
           const htmlFile = options.output || `export-report-${Date.now()}.html`;
-          
+
           await fs.writeFile(htmlFile, htmlReport);
           console.log(`✅ HTML report saved to: ${htmlFile}`);
           console.log('💡 Open the file in your browser to view the report');
           break;
-
+        }
         case 'text':
         default:
           generateTextReport(exportData);
@@ -1705,8 +1706,8 @@ function generateTextReport(exportData: any): void {
   console.log(`  Successful Exports: ${exportData.summary?.successfulExports || 0}`);
   console.log(`  Failed Exports: ${exportData.summary?.failedExports || 0}`);
   console.log(`  Skipped Documents: ${exportData.summary?.skippedDocuments || 0}`);
-  
-  const successRate = exportData.summary?.totalDocuments > 0 
+
+  const successRate = exportData.summary?.totalDocuments > 0
     ? ((exportData.summary.successfulExports / exportData.summary.totalDocuments) * 100).toFixed(1)
     : '0';
   console.log(`  Success Rate: ${successRate}%`);
@@ -1722,12 +1723,12 @@ function generateTextReport(exportData: any): void {
   }
   console.log('');
 
-  if (exportData.errors && exportData.errors.length > 0) {
+  if (exportData.errors && Array.isArray(exportData.errors) && exportData.errors.length > 0) {
     console.log('❌ Errors:');
-    exportData.errors.slice(0, 10).forEach((error: any, index: number) => {
+    (exportData.errors as Array<Record<string, unknown>>).slice(0, 10).forEach((error: any, index: number) => {
       console.log(`  ${index + 1}. ${error.documentTitle || 'Unknown'}: ${error.error}`);
     });
-    
+
     if (exportData.errors.length > 10) {
       console.log(`  ... and ${exportData.errors.length - 10} more errors`);
     }
@@ -1746,7 +1747,7 @@ function generateTextReport(exportData: any): void {
 
 // Helper function to generate HTML report
 function generateHtmlReport(exportData: any): string {
-  const successRate = exportData.summary?.totalDocuments > 0 
+  const successRate = exportData.summary?.totalDocuments > 0
     ? ((exportData.summary.successfulExports / exportData.summary.totalDocuments) * 100).toFixed(1)
     : '0';
 
@@ -1815,15 +1816,14 @@ function generateHtmlReport(exportData: any): string {
         </table>
 
         ${exportData.errors && exportData.errors.length > 0 ? `
-        <h2>❌ Errors (${exportData.errors.length})</h2>
+        <h2>❌ Errors (${Array.isArray(exportData.errors) ? exportData.errors.length : 0})</h2>
         <div class="error-list">
-            ${exportData.errors.slice(0, 20).map((error: any, index: number) => `
+            ${Array.isArray(exportData.errors) ? (exportData.errors as Array<Record<string, unknown>>).slice(0, 20).map((error: any, index: number) => `
                 <div class="error-item">
                     <strong>${index + 1}. ${error.documentTitle || 'Unknown Document'}</strong><br>
                     <span style="color: #666;">${error.error}</span>
                 </div>
-            `).join('')}
-            ${exportData.errors.length > 20 ? `<p><em>... and ${exportData.errors.length - 20} more errors</em></p>` : ''}
+            `).join('') + (exportData.errors.length > 20 ? `<p><em>... and ${exportData.errors.length - 20} more errors</em></p>` : '') : ''}
         </div>
         ` : ''}
 
@@ -1849,20 +1849,20 @@ function generateHtmlReport(exportData: any): string {
 async function checkFormatCapabilities() {
   try {
     console.log('🔍 Checking format capabilities and dependencies...\n');
-    
+
     const { FormatValidator } = await import('../core/format-validator');
     const validator = new FormatValidator();
-    
+
     const capabilities = await validator.getFormatCapabilities();
-    
+
     console.log('📋 Format Capabilities Report:\n');
-    
+
     for (const capability of capabilities) {
       const statusIcon = capability.available ? '✅' : '❌';
       console.log(`${statusIcon} ${capability.format.toUpperCase()}`);
       console.log(`   Available: ${capability.available ? 'Yes' : 'No'}`);
       console.log(`   Document Types: ${capability.documentTypes.join(', ')}`);
-      
+
       if (capability.dependencies.length > 0) {
         console.log('   Dependencies:');
         for (const dep of capability.dependencies) {
@@ -1880,18 +1880,18 @@ async function checkFormatCapabilities() {
           }
         }
       }
-      
+
       if (capability.error) {
         console.log(`   Error: ${capability.error}`);
       }
-      
+
       console.log('');
     }
-    
+
     // Show summary
     const availableFormats = capabilities.filter(c => c.available);
     const unavailableFormats = capabilities.filter(c => !c.available);
-    
+
     console.log('📊 Summary:');
     console.log(`   Available formats: ${availableFormats.map(c => c.format).join(', ') || 'None'}`);
     if (unavailableFormats.length > 0) {
@@ -1904,13 +1904,13 @@ async function checkFormatCapabilities() {
         }
       }
     }
-    
+
     // Show document type compatibility
     console.log('\n📄 Document Type Compatibility:');
     console.log('   DOCUMENT: docx, html, markdown');
     console.log('   SPREADSHEET: xlsx, html');
     console.log('   CHAT: html, markdown');
-    
+
   } catch (error) {
     console.error('❌ Failed to check format capabilities:', error instanceof Error ? error.message : String(error));
     process.exit(1);

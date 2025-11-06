@@ -1,5 +1,5 @@
 {
-  "name": "quip-export",
+  "name": "@anthragz/quip-export",
   "version": "1.0.0",
   "description": "A command-line tool to export and download documents from Quip to local storage while preserving folder structure",
   "main": "dist/index.js",

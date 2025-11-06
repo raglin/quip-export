@@ -40,7 +40,7 @@ export interface ErrorContext {
   batchIndex?: number;
   attemptNumber?: number;
   timestamp: Date;
-  metadata?: Record<string, any>;
+  metadata?: any;
 }
 
 export interface CategorizedError {
@@ -151,7 +151,7 @@ export class ErrorHandler {
           message: `Skipping operation due to ${category} error`
         };
         
-      case RecoveryStrategy.FALLBACK:
+      case RecoveryStrategy.FALLBACK: {
         const fallbackResult = await this.attemptFallback(categorizedError);
         if (fallbackResult.success) {
           this.statistics.recoveredErrors++;
@@ -163,6 +163,7 @@ export class ErrorHandler {
           };
         }
         // Fall through to skip if fallback fails
+      }
         this.statistics.skippedErrors++;
         return {
           success: true,

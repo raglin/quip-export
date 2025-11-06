@@ -216,37 +216,36 @@ describe('FormatValidator', () => {
 
   describe('getGracefulDegradationOptions', () => {
     it('should provide fallback options for markdown', () => {
-      const alternatives = validator.getGracefulDegradationOptions(['markdown'], 'DOCUMENT');
+      const alternatives = validator.getGracefulDegradationOptions(['markdown']);
       
       expect(alternatives.markdown).toContain('html');
     });
 
     it('should provide fallback options for native', () => {
-      const alternatives = validator.getGracefulDegradationOptions(['native'], 'DOCUMENT');
+      const alternatives = validator.getGracefulDegradationOptions(['native']);
       
       expect(alternatives.native).toContain('html');
     });
 
     it('should provide fallback options for markdown', () => {
-      const alternatives = validator.getGracefulDegradationOptions(['markdown'], 'DOCUMENT');
+      const alternatives = validator.getGracefulDegradationOptions(['markdown']);
       
       expect(alternatives.markdown).toContain('html');
     });
 
     it('should provide fallback options for known unavailable formats', () => {
       // Test that native format can fallback to html
-      const nativeAlternatives = validator.getGracefulDegradationOptions(['native'], 'DOCUMENT');
+      const nativeAlternatives = validator.getGracefulDegradationOptions(['native']);
       expect(nativeAlternatives.native).toContain('html');
 
       // Test that markdown can fallback to html  
-      const markdownAlternatives = validator.getGracefulDegradationOptions(['markdown'], 'DOCUMENT');
+      const markdownAlternatives = validator.getGracefulDegradationOptions(['markdown']);
       expect(markdownAlternatives.markdown).toContain('html');
     });
 
     it('should handle multiple unavailable formats', () => {
       const alternatives = validator.getGracefulDegradationOptions(
-        ['markdown', 'native'], 
-        'DOCUMENT'
+        ['markdown', 'native']
       );
       
       expect(alternatives.markdown).toBeDefined();
@@ -256,7 +255,7 @@ describe('FormatValidator', () => {
     });
 
     it('should return empty alternatives for formats without fallbacks', () => {
-      const alternatives = validator.getGracefulDegradationOptions(['unknown'], 'DOCUMENT');
+      const alternatives = validator.getGracefulDegradationOptions(['unknown']);
       
       expect(alternatives.unknown).toBeUndefined();
     });

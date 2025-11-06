@@ -344,7 +344,7 @@ export class ExportLogger {
   /**
    * Log configuration events
    */
-  public logConfiguration(config: any): void {
+  public logConfiguration(config: Record<string, unknown>): void {
     // Remove sensitive information before logging
     const safeConfig = { ...config };
     delete safeConfig.personalAccessToken;
@@ -356,7 +356,7 @@ export class ExportLogger {
   /**
    * Log warnings
    */
-  public logWarning(message: string, context?: any): void {
+  public logWarning(message: string, context?: Record<string, unknown>): void {
     this.logger.warn(message, context);
   }
 

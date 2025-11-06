@@ -921,8 +921,8 @@ export class ExportReporter {
                 
                 if (mapping.formatResults) {
                     const formatEntries = Object.entries(mapping.formatResults);
-                    const successfulFormats = formatEntries.filter(([_, result]) => result.success);
-                    const failedFormats = formatEntries.filter(([_, result]) => !result.success);
+                    const successfulFormats = formatEntries.filter(([, result]) => result.success);
+                    const failedFormats = formatEntries.filter(([, result]) => !result.success);
                     
                     formatInfo = `
                         <div class="format-breakdown">
@@ -932,7 +932,7 @@ export class ExportReporter {
                     `;
                     
                     // Calculate total size across all successful formats
-                    totalSize = successfulFormats.reduce((sum, [_, result]) => sum + (result.fileSize || 0), 0);
+                    totalSize = successfulFormats.reduce((sum, [, result]) => sum + (result.fileSize || 0), 0);
                 } else if (mapping.exportFormat) {
                     formatInfo = mapping.exportFormat.toUpperCase();
                 }

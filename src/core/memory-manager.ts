@@ -1,4 +1,5 @@
 // Memory management utilities for efficient document processing
+import * as os from 'os';
 
 export class MemoryManager {
   private static readonly MB = 1024 * 1024;
@@ -13,8 +14,8 @@ export class MemoryManager {
     percentage: number;
   } {
     // const memUsage = process.memoryUsage(); // Reserved for future use
-    const totalMemory = require('os').totalmem();
-    const freeMemory = require('os').freemem();
+    const totalMemory = os.totalmem();
+    const freeMemory = os.freemem();
     const usedMemory = totalMemory - freeMemory;
 
     return {

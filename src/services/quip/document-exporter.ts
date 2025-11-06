@@ -118,7 +118,7 @@ export class DocumentExporter {
           .filter(cap => !cap.available)
           .map(cap => cap.format);
         
-        const degradationOptions = this.formatValidator.getGracefulDegradationOptions(unavailableFormats, document.type);
+        const degradationOptions = this.formatValidator.getGracefulDegradationOptions(unavailableFormats);
         
         // If fallback is enabled and degradation options exist, try fallback
         if (options.fallbackToHtml && degradationOptions[preferredFormat]?.includes('html')) {

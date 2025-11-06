@@ -95,7 +95,7 @@ export class AuthManager implements IAuthManager {
    */
   isAuthenticated(): boolean {
     // This is a synchronous check - for async validation use getValidToken
-    return this.tokenStorage.hasToken('quip') as any; // hasToken is async but we need sync here
+    return this.tokenStorage.hasToken('quip') as unknown as boolean; // hasToken is async but we need sync here
   }
 
   /**

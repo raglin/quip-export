@@ -111,7 +111,7 @@ describe('ExportStateManager', () => {
 
     it('should complete document export', () => {
       stateManager.initializeExport(10);
-      stateManager.completeDocumentExport('doc1', '/path/to/file.docx', 1024);
+      stateManager.completeDocumentExport();
 
       const session = stateManager.getCurrentSession()!;
       expect(session.state.processedDocuments).toBe(1);
@@ -244,7 +244,7 @@ describe('ExportStateManager', () => {
       session.state.startTime = new Date(Date.now() - 1000); // 1 second ago
       
       // Simulate some exports
-      stateManager.completeDocumentExport('doc1', '/path/file1.docx', 1024);
+      stateManager.completeDocumentExport();
       stateManager.failDocumentExport('doc2', 'Failed Doc', 'Private', 'Export error');
 
       const summary = stateManager.generateSummary();

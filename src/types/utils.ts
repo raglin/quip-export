@@ -30,7 +30,7 @@ export type RequireFields<T, K extends keyof T> = T & Required<Pick<T, K>>;
 export type OmitMultiple<T, K extends keyof T> = Omit<T, K>;
 
 // Event emitter types
-export type EventMap = Record<string, any>;
+export type EventMap = Record<string, unknown>;
 export type EventKey<T extends EventMap> = string & keyof T;
 export type EventReceiver<T> = (params: T) => void;
 
