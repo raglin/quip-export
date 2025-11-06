@@ -34,7 +34,7 @@ export class ExportLogger {
 
   constructor(config: ExportLoggerConfig) {
     this.config = config;
-    
+
     // Initialize main logger
     const loggerConfig: Partial<LoggerConfig> = {
       level: config.logLevel,
@@ -42,9 +42,9 @@ export class ExportLogger {
       logDirectory: path.join(config.outputDirectory, 'logs'),
       enableConsole: config.enableConsoleLogging,
       sessionId: config.sessionId,
-      component: config.component || 'EXPORT'
+      component: config.component || 'EXPORT',
     };
-    
+
     this.logger = new EnhancedLogger(loggerConfig);
 
     // Initialize audit logger if enabled
@@ -53,9 +53,9 @@ export class ExportLogger {
         sessionId: config.sessionId,
         auditDirectory: path.join(config.outputDirectory, 'audit'),
         enableFileOutput: true,
-        enableConsoleOutput: false
+        enableConsoleOutput: false,
       };
-      
+
       this.auditLogger = new AuditLogger(auditConfig);
     }
   }
@@ -67,11 +67,11 @@ export class ExportLogger {
     this.logger.info('Export session started', {
       totalDocuments,
       outputDirectory,
-      sessionId: this.config.sessionId
+      sessionId: this.config.sessionId,
     });
 
     this.auditLogger?.logExportSession('started', {
-      totalDocuments
+      totalDocuments,
     });
   }
 
@@ -86,14 +86,14 @@ export class ExportLogger {
     duration: number
   ): void {
     const successRate = totalDocuments > 0 ? (successfulExports / totalDocuments) * 100 : 0;
-    
+
     this.logger.info('Export session completed', {
       totalDocuments,
       successfulExports,
       failedExports,
       successRate: successRate.toFixed(1) + '%',
       totalDataExported: this.formatBytes(totalDataExported),
-      duration: this.formatDuration(duration)
+      duration: this.formatDuration(duration),
     });
 
     this.auditLogger?.logExportSession('completed', {
@@ -101,7 +101,7 @@ export class ExportLogger {
       successfulExports,
       failedExports,
       totalDataExported,
-      duration
+      duration,
     });
   }
 
@@ -112,11 +112,11 @@ export class ExportLogger {
     this.logger.error('Export session failed', {
       error: error.message,
       stack: error.stack,
-      context
+      context,
     });
 
     this.auditLogger?.logExportSession('failed', {
-      error
+      error,
     });
   }
 
@@ -131,14 +131,10 @@ export class ExportLogger {
     this.logger.info('Starting document export', {
       documentId,
       documentTitle,
-      folderName
+      folderName,
     });
 
-    this.auditLogger?.logDocumentExport(
-      documentId,
-      documentTitle,
-      'started'
-    );
+    this.auditLogger?.logDocumentExport(documentId, documentTitle, 'started');
   }
 
   /**
@@ -160,30 +156,22 @@ export class ExportLogger {
       localPath,
       fileSize: details.fileSize ? this.formatBytes(details.fileSize) : undefined,
       exportFormat: details.exportFormat,
-      processingTime: details.processingTime ? this.formatDuration(details.processingTime) : undefined
+      processingTime: details.processingTime
+        ? this.formatDuration(details.processingTime)
+        : undefined,
     });
 
-    this.auditLogger?.logDocumentExport(
-      documentId,
-      documentTitle,
-      'completed',
-      {
-        format: details.exportFormat,
-        fileSize: details.fileSize,
-        duration: details.processingTime
-      }
-    );
+    this.auditLogger?.logDocumentExport(documentId, documentTitle, 'completed', {
+      format: details.exportFormat,
+      fileSize: details.fileSize,
+      duration: details.processingTime,
+    });
 
     if (details.fileSize) {
-      this.auditLogger?.logFileWrite(
-        documentTitle,
-        localPath,
-        'completed',
-        {
-          fileSize: details.fileSize,
-          duration: details.processingTime
-        }
-      );
+      this.auditLogger?.logFileWrite(documentTitle, localPath, 'completed', {
+        fileSize: details.fileSize,
+        duration: details.processingTime,
+      });
     }
   }
 
@@ -201,17 +189,12 @@ export class ExportLogger {
       documentTitle,
       error: error.message,
       stack: error.stack,
-      context
+      context,
     });
 
-    this.auditLogger?.logDocumentExport(
-      documentId,
-      documentTitle,
-      'failed',
-      {
-        error
-      }
-    );
+    this.auditLogger?.logDocumentExport(documentId, documentTitle, 'failed', {
+      error,
+    });
   }
 
   /**
@@ -220,7 +203,7 @@ export class ExportLogger {
   public logFolderProcessing(folderName: string, documentCount: number): void {
     this.logger.info('Processing folder', {
       folderName,
-      documentCount
+      documentCount,
     });
   }
 
@@ -234,7 +217,7 @@ export class ExportLogger {
     } else {
       this.logger.error('Folder creation failed', {
         folderPath,
-        error: error?.message
+        error: error?.message,
       });
       this.auditLogger?.logFolderCreation(folderPath, 'failed', error);
     }
@@ -258,45 +241,37 @@ export class ExportLogger {
         method,
         endpoint,
         statusCode: details?.statusCode,
-        responseTime: details?.responseTime ? `${details.responseTime}ms` : undefined
+        responseTime: details?.responseTime ? `${details.responseTime}ms` : undefined,
       });
 
-      this.auditLogger?.logApiCall(
-        'quip',
-        endpoint,
-        method,
-        'completed',
-        details
-      );
+      this.auditLogger?.logApiCall('quip', endpoint, method, 'completed', details);
     } else {
       this.logger.error('API call failed', {
         method,
         endpoint,
         statusCode: details?.statusCode,
-        error: details?.error?.message
+        error: details?.error?.message,
       });
 
-      this.auditLogger?.logApiCall(
-        'quip',
-        endpoint,
-        method,
-        'failed',
-        details
-      );
+      this.auditLogger?.logApiCall('quip', endpoint, method, 'failed', details);
     }
   }
 
   /**
    * Log authentication events
    */
-  public logAuthentication(success: boolean, method: 'personal_token' | 'oauth', error?: Error): void {
+  public logAuthentication(
+    success: boolean,
+    method: 'personal_token' | 'oauth',
+    error?: Error
+  ): void {
     if (success) {
       this.logger.info('Authentication successful', { method });
       this.auditLogger?.logAuthenticationEvent('quip', 'completed');
     } else {
       this.logger.error('Authentication failed', {
         method,
-        error: error?.message
+        error: error?.message,
       });
       this.auditLogger?.logAuthenticationEvent('quip', 'failed', error);
     }
@@ -318,13 +293,13 @@ export class ExportLogger {
       this.logger.info('Document discovery completed', {
         documentsFound: details?.documentsFound,
         foldersFound: details?.foldersFound,
-        duration: details?.duration ? this.formatDuration(details.duration) : undefined
+        duration: details?.duration ? this.formatDuration(details.duration) : undefined,
       });
 
       this.auditLogger?.logDocumentDiscovery('completed', details);
     } else {
       this.logger.error('Document discovery failed', {
-        error: details?.error?.message
+        error: details?.error?.message,
       });
 
       this.auditLogger?.logDocumentDiscovery('failed', details);
@@ -337,7 +312,7 @@ export class ExportLogger {
   public logRateLimit(endpoint: string, retryAfter?: number): void {
     this.logger.warn('Rate limit encountered', {
       endpoint,
-      retryAfter: retryAfter ? `${retryAfter}ms` : undefined
+      retryAfter: retryAfter ? `${retryAfter}ms` : undefined,
     });
   }
 
@@ -349,7 +324,7 @@ export class ExportLogger {
     const safeConfig = { ...config };
     delete safeConfig.personalAccessToken;
     delete safeConfig.clientSecret;
-    
+
     this.logger.info('Export configuration', safeConfig);
   }
 

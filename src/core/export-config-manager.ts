@@ -21,7 +21,7 @@ export class ExportConfigManager implements IExportConfigValidator {
       retryAttempts: DEFAULT_EXPORT_CONFIG.retryAttempts,
       preserveFolderStructure: DEFAULT_EXPORT_CONFIG.preserveFolderStructure,
       sanitizeFileNames: DEFAULT_EXPORT_CONFIG.sanitizeFileNames,
-      conflictResolution: DEFAULT_EXPORT_CONFIG.conflictResolution
+      conflictResolution: DEFAULT_EXPORT_CONFIG.conflictResolution,
     };
   }
 
@@ -30,18 +30,25 @@ export class ExportConfigManager implements IExportConfigValidator {
    */
   static createFromEnv(): ExportConfig {
     const defaultConfig = ExportConfigManager.createDefault();
-    
+
     return {
       outputDirectory: process.env.EXPORT_OUTPUT_DIRECTORY || defaultConfig.outputDirectory,
-      exportFormat: this.migrateExportFormat(process.env.EXPORT_FORMAT || defaultConfig.exportFormat),
-      maxDocuments: process.env.EXPORT_MAX_DOCUMENTS ? parseInt(process.env.EXPORT_MAX_DOCUMENTS, 10) : defaultConfig.maxDocuments,
-      includeSharedDocuments: process.env.EXPORT_INCLUDE_SHARED === 'true' || defaultConfig.includeSharedDocuments,
+      exportFormat: this.migrateExportFormat(
+        process.env.EXPORT_FORMAT || defaultConfig.exportFormat
+      ),
+      maxDocuments: process.env.EXPORT_MAX_DOCUMENTS
+        ? parseInt(process.env.EXPORT_MAX_DOCUMENTS, 10)
+        : defaultConfig.maxDocuments,
+      includeSharedDocuments:
+        process.env.EXPORT_INCLUDE_SHARED === 'true' || defaultConfig.includeSharedDocuments,
       includeFolders: defaultConfig.includeFolders,
-      rateLimitDelay: process.env.EXPORT_RATE_LIMIT_DELAY ? parseInt(process.env.EXPORT_RATE_LIMIT_DELAY, 10) : defaultConfig.rateLimitDelay,
+      rateLimitDelay: process.env.EXPORT_RATE_LIMIT_DELAY
+        ? parseInt(process.env.EXPORT_RATE_LIMIT_DELAY, 10)
+        : defaultConfig.rateLimitDelay,
       retryAttempts: defaultConfig.retryAttempts,
       preserveFolderStructure: defaultConfig.preserveFolderStructure,
       sanitizeFileNames: defaultConfig.sanitizeFileNames,
-      conflictResolution: defaultConfig.conflictResolution
+      conflictResolution: defaultConfig.conflictResolution,
     };
   }
 
@@ -52,7 +59,7 @@ export class ExportConfigManager implements IExportConfigValidator {
     const defaultConfig = ExportConfigManager.createDefault();
     return {
       ...defaultConfig,
-      ...userConfig
+      ...userConfig,
     };
   }
 
@@ -128,7 +135,7 @@ export class ExportConfigManager implements IExportConfigValidator {
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -169,11 +176,14 @@ export class ExportConfigManager implements IExportConfigValidator {
       rateLimitDelay: Math.max(0, Math.min(10000, Math.floor(config.rateLimitDelay))),
       retryAttempts: Math.max(0, Math.min(10, Math.floor(config.retryAttempts))),
       exportFormat: this.migrateExportFormat(config.exportFormat),
-      maxDocuments: config.maxDocuments && config.maxDocuments > 0 ? Math.min(10000, Math.floor(config.maxDocuments)) : undefined,
+      maxDocuments:
+        config.maxDocuments && config.maxDocuments > 0
+          ? Math.min(10000, Math.floor(config.maxDocuments))
+          : undefined,
       includeFolders: Array.isArray(config.includeFolders) ? config.includeFolders : [],
-      conflictResolution: ['number', 'timestamp', 'overwrite'].includes(config.conflictResolution) 
-        ? config.conflictResolution 
-        : 'number'
+      conflictResolution: ['number', 'timestamp', 'overwrite'].includes(config.conflictResolution)
+        ? config.conflictResolution
+        : 'number',
     };
   }
 
@@ -189,9 +199,10 @@ export class ExportConfigManager implements IExportConfigValidator {
       'Retry Attempts': config.retryAttempts,
       'Preserve Folder Structure': config.preserveFolderStructure,
       'Include Shared Documents': config.includeSharedDocuments,
-      'Include Folders': config.includeFolders.length > 0 ? config.includeFolders.join(', ') : 'All folders',
+      'Include Folders':
+        config.includeFolders.length > 0 ? config.includeFolders.join(', ') : 'All folders',
       'Sanitize File Names': config.sanitizeFileNames,
-      'Conflict Resolution': config.conflictResolution
+      'Conflict Resolution': config.conflictResolution,
     };
   }
 
@@ -210,21 +221,27 @@ export class ExportConfigManager implements IExportConfigValidator {
       const parsed = JSON.parse(configJson) as Partial<ExportConfig>;
       return ExportConfigManager.mergeWithDefaults(parsed);
     } catch (error) {
-      throw new Error(`Invalid configuration JSON: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Invalid configuration JSON: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
   /**
    * Create configuration from preset (alias for createPreset)
    */
-  static createFromPreset(preset: 'conservative' | 'balanced' | 'aggressive' | 'fast' | 'comprehensive'): ExportConfig {
+  static createFromPreset(
+    preset: 'conservative' | 'balanced' | 'aggressive' | 'fast' | 'comprehensive'
+  ): ExportConfig {
     return ExportConfigManager.createPreset(preset);
   }
 
   /**
    * Create configuration for different export scenarios
    */
-  static createPreset(preset: 'conservative' | 'balanced' | 'aggressive' | 'fast' | 'comprehensive'): ExportConfig {
+  static createPreset(
+    preset: 'conservative' | 'balanced' | 'aggressive' | 'fast' | 'comprehensive'
+  ): ExportConfig {
     const base = ExportConfigManager.createDefault();
 
     switch (preset) {
@@ -233,7 +250,7 @@ export class ExportConfigManager implements IExportConfigValidator {
           ...base,
           rateLimitDelay: 500,
           retryAttempts: 5,
-          exportFormat: 'native'
+          exportFormat: 'native',
         };
 
       case 'balanced':
@@ -241,14 +258,14 @@ export class ExportConfigManager implements IExportConfigValidator {
           ...base,
           rateLimitDelay: 200,
           retryAttempts: 3,
-          exportFormat: 'native'
+          exportFormat: 'native',
         };
 
       case 'aggressive':
         return {
           ...base,
           rateLimitDelay: 800,
-          retryAttempts: 2
+          retryAttempts: 2,
         };
 
       case 'fast':
@@ -256,7 +273,7 @@ export class ExportConfigManager implements IExportConfigValidator {
           ...base,
           rateLimitDelay: 50,
           retryAttempts: 1,
-          exportFormat: 'native'
+          exportFormat: 'native',
         };
 
       case 'comprehensive':
@@ -265,7 +282,7 @@ export class ExportConfigManager implements IExportConfigValidator {
           rateLimitDelay: 300,
           retryAttempts: 5,
           exportFormat: 'native',
-          includeSharedDocuments: true
+          includeSharedDocuments: true,
         };
 
       default:
@@ -285,7 +302,9 @@ export class ExportConfigManager implements IExportConfigValidator {
       }
       fs.writeFileSync(filePath, configJson, 'utf8');
     } catch (error) {
-      throw new Error(`Failed to save configuration: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to save configuration: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -300,7 +319,9 @@ export class ExportConfigManager implements IExportConfigValidator {
       const configJson = fs.readFileSync(filePath, 'utf8');
       return ExportConfigManager.importConfig(configJson);
     } catch (error) {
-      throw new Error(`Failed to load configuration: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to load configuration: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -316,7 +337,7 @@ export class ExportConfigManager implements IExportConfigValidator {
           ...base,
           includeSharedDocuments: false,
           exportFormat: 'native',
-          rateLimitDelay: 100
+          rateLimitDelay: 100,
         };
 
       case 'team':
@@ -324,7 +345,7 @@ export class ExportConfigManager implements IExportConfigValidator {
           ...base,
           includeSharedDocuments: true,
           exportFormat: 'native',
-          rateLimitDelay: 200
+          rateLimitDelay: 200,
         };
 
       case 'archive':
@@ -334,7 +355,7 @@ export class ExportConfigManager implements IExportConfigValidator {
           exportFormat: 'native',
           preserveFolderStructure: true,
           rateLimitDelay: 500,
-          retryAttempts: 5
+          retryAttempts: 5,
         };
 
       case 'migration':
@@ -344,7 +365,7 @@ export class ExportConfigManager implements IExportConfigValidator {
           exportFormat: 'native',
           rateLimitDelay: 300,
           retryAttempts: 3,
-          preserveFolderStructure: true
+          preserveFolderStructure: true,
         };
 
       default:
@@ -355,7 +376,10 @@ export class ExportConfigManager implements IExportConfigValidator {
   /**
    * Estimate export time based on configuration and document count
    */
-  static estimateExportTime(config: ExportConfig, documentCount: number): {
+  static estimateExportTime(
+    config: ExportConfig,
+    documentCount: number
+  ): {
     estimatedMinutes: number;
     estimatedSeconds: number;
     documentsPerMinute: number;
@@ -374,7 +398,7 @@ export class ExportConfigManager implements IExportConfigValidator {
     // Adjust for rate limiting
     const rateLimitSeconds = config.rateLimitDelay / 1000;
     baseTimePerDoc += rateLimitSeconds;
-    
+
     if (config.rateLimitDelay >= 500) {
       factors.push('Conservative rate limiting');
     }
@@ -396,7 +420,7 @@ export class ExportConfigManager implements IExportConfigValidator {
       estimatedMinutes: Math.ceil(totalMinutes),
       estimatedSeconds: Math.ceil(totalSeconds),
       documentsPerMinute: Math.round(documentsPerMinute * 10) / 10,
-      factors
+      factors,
     };
   }
 
@@ -416,9 +440,9 @@ export class ExportConfigManager implements IExportConfigValidator {
           ...base,
           rateLimitDelay: 50,
           retryAttempts: 1,
-          exportFormat: 'native'
+          exportFormat: 'native',
         },
-        reasoning: 'Small document count - using fast preset for quick export'
+        reasoning: 'Small document count - using fast preset for quick export',
       };
     } else if (documentCount <= 200) {
       // Medium export - balanced approach
@@ -427,9 +451,9 @@ export class ExportConfigManager implements IExportConfigValidator {
           ...base,
           rateLimitDelay: 200,
           retryAttempts: 3,
-          exportFormat: 'native'
+          exportFormat: 'native',
         },
-        reasoning: 'Medium document count - using balanced preset for optimal performance'
+        reasoning: 'Medium document count - using balanced preset for optimal performance',
       };
     } else if (documentCount <= 1000) {
       // Large export - more conservative
@@ -438,9 +462,9 @@ export class ExportConfigManager implements IExportConfigValidator {
           ...base,
           rateLimitDelay: 500,
           retryAttempts: 5,
-          exportFormat: 'native'
+          exportFormat: 'native',
         },
-        reasoning: 'Large document count - using conservative preset for reliability'
+        reasoning: 'Large document count - using conservative preset for reliability',
       };
     } else {
       // Very large export - very conservative
@@ -450,9 +474,10 @@ export class ExportConfigManager implements IExportConfigValidator {
           rateLimitDelay: 300,
           retryAttempts: 5,
           exportFormat: 'native',
-          maxDocuments: 1000
+          maxDocuments: 1000,
         },
-        reasoning: 'Very large document count - using comprehensive preset with document limit. Limited to 1000 documents for initial export'
+        reasoning:
+          'Very large document count - using comprehensive preset with document limit. Limited to 1000 documents for initial export',
       };
     }
   }

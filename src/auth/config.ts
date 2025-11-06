@@ -9,16 +9,14 @@ export function createQuipConfig(
 ): QuipAuthConfig {
   const baseUrl = `https://platform.${domain}`;
   const tokenUrl = `https://${domain}/dev/token`;
-  
+
   return {
     domain,
     baseUrl,
     tokenUrl,
-    personalAccessToken
+    personalAccessToken,
   };
 }
-
-
 
 /**
  * Load configuration from environment variables for export tool
@@ -36,7 +34,7 @@ export function loadConfigFromEnv(): {
   }
 
   return {
-    quip: quipConfig
+    quip: quipConfig,
   };
 }
 
@@ -45,7 +43,7 @@ export function loadConfigFromEnv(): {
  */
 export function validateExportConfig(): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
-  
+
   const quipPersonalToken = process.env.QUIP_PERSONAL_ACCESS_TOKEN;
   const quipDomain = process.env.QUIP_DOMAIN;
 
@@ -96,6 +94,6 @@ export function validateExportConfig(): { isValid: boolean; errors: string[] } {
 
   return {
     isValid: errors.length === 0,
-    errors
+    errors,
   };
 }

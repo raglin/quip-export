@@ -49,7 +49,7 @@ export class ExportOrchestrator {
   private readonly directoryManager: DirectoryManager;
   private readonly errorHandler: ErrorHandler;
   private readonly circuitBreakerManager: CircuitBreakerManager;
-  
+
   private isExporting = false;
   private shouldCancel = false;
   private currentBatch: DocumentExportTask[] = [];
@@ -76,7 +76,7 @@ export class ExportOrchestrator {
       recoveryTimeout: 60000, // 1 minute
       successThreshold: 3,
       monitoringWindow: 300000, // 5 minutes
-      minimumRequests: 3
+      minimumRequests: 3,
     });
   }
 
@@ -104,7 +104,7 @@ export class ExportOrchestrator {
 
       // Initialize export
       this.stateManager.setStatus('discovering');
-      
+
       // Discover documents
       const documents = await this.discoverDocuments(config);
       this.stateManager.initializeExport(documents.length);
@@ -126,17 +126,16 @@ export class ExportOrchestrator {
       this.logger.info('Export completed successfully');
 
       return this.generateResult(session);
-
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Export failed: ${errorMessage}`);
       this.stateManager.failExport(errorMessage);
-      
+
       const session = this.stateManager.getCurrentSession();
       if (session) {
         return this.generateResult(session);
       }
-      
+
       throw error;
     } finally {
       this.isExporting = false;
@@ -154,10 +153,10 @@ export class ExportOrchestrator {
 
     this.shouldCancel = true;
     this.logger.info('Export cancellation requested');
-    
+
     // Wait for current batch to complete
     await this.waitForBatchCompletion();
-    
+
     this.stateManager.cancelExport();
     this.logger.info('Export cancelled');
   }
@@ -205,7 +204,7 @@ export class ExportOrchestrator {
       session,
       progress,
       errorStats: this.errorHandler.getStatistics(),
-      circuitBreakerStats: this.circuitBreakerManager.getAllStats()
+      circuitBreakerStats: this.circuitBreakerManager.getAllStats(),
     };
   }
 
@@ -220,17 +219,19 @@ export class ExportOrchestrator {
     const errorReport = this.errorHandler.generateErrorReport();
     const circuitBreakerStats = this.circuitBreakerManager.getAllStats();
     const openCircuits = this.circuitBreakerManager.getOpenCircuits();
-    
+
     const recommendations = [...errorReport.recommendations];
-    
+
     if (openCircuits.length > 0) {
-      recommendations.push(`Circuit breakers are open for: ${openCircuits.join(', ')}. Wait for recovery or reset manually.`);
+      recommendations.push(
+        `Circuit breakers are open for: ${openCircuits.join(', ')}. Wait for recovery or reset manually.`
+      );
     }
 
     return {
       errorReport,
       circuitBreakerStats,
-      recommendations
+      recommendations,
     };
   }
 
@@ -253,7 +254,7 @@ export class ExportOrchestrator {
       const discoveryResult = await this.documentDiscovery.discoverDocuments({
         includeShared: config.includeSharedDocuments,
         types: ['DOCUMENT', 'SPREADSHEET'],
-        maxDocuments: config.maxDocuments // Pass the limit to optimize discovery
+        maxDocuments: config.maxDocuments, // Pass the limit to optimize discovery
       });
 
       const tasks: DocumentExportTask[] = discoveryResult.documents.map((docWithPath, index) => ({
@@ -264,12 +265,11 @@ export class ExportOrchestrator {
         exportFormat: this.determineExportFormat(docWithPath.document.type, config.exportFormat),
         priority: index,
         retryCount: 0,
-        status: 'pending'
+        status: 'pending',
       }));
 
       this.logger.info(`Discovered ${tasks.length} documents for export`);
       return tasks;
-
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Document discovery failed: ${errorMessage}`);
@@ -301,14 +301,16 @@ export class ExportOrchestrator {
       rateLimitDelay: config.rateLimitDelay,
       maxRetries: config.retryAttempts,
       retryDelay: Math.max(config.rateLimitDelay * 2, 1000),
-      memoryThreshold: 500 // 500MB threshold
+      memoryThreshold: 500, // 500MB threshold
     };
 
-    this.logger.info(`Processing ${tasks.length} documents in batches of ${batchOptions.batchSize}`);
+    this.logger.info(
+      `Processing ${tasks.length} documents in batches of ${batchOptions.batchSize}`
+    );
     this.stateManager.startExport();
 
     const batches = this.createBatches(tasks, batchOptions.batchSize);
-    
+
     for (let i = 0; i < batches.length; i++) {
       if (this.shouldCancel) {
         this.logger.info('Export cancelled during batch processing');
@@ -317,11 +319,11 @@ export class ExportOrchestrator {
 
       const batch = batches[i];
       this.currentBatch = batch;
-      
+
       this.logger.debug(`Processing batch ${i + 1}/${batches.length} (${batch.length} documents)`);
-      
+
       await this.processBatch(batch, config, batchOptions);
-      
+
       // Rate limiting between batches
       if (i < batches.length - 1 && batchOptions.rateLimitDelay > 0) {
         await this.delay(batchOptions.rateLimitDelay);
@@ -336,12 +338,12 @@ export class ExportOrchestrator {
    * Process a single batch of documents
    */
   private async processBatch(
-    batch: DocumentExportTask[], 
-    config: ExportConfig, 
+    batch: DocumentExportTask[],
+    config: ExportConfig,
     options: BatchProcessingOptions
   ): Promise<void> {
-    const promises = batch.map(task => this.processDocument(task, config, options));
-    
+    const promises = batch.map((task) => this.processDocument(task, config, options));
+
     // Process documents in the batch concurrently but with limited concurrency
     await this.processConcurrently(promises, options.concurrentBatches);
   }
@@ -350,8 +352,8 @@ export class ExportOrchestrator {
    * Process a single document with comprehensive error handling
    */
   private async processDocument(
-    task: DocumentExportTask, 
-    config: ExportConfig, 
+    task: DocumentExportTask,
+    config: ExportConfig,
     options: BatchProcessingOptions
   ): Promise<void> {
     if (this.shouldCancel) {
@@ -367,23 +369,27 @@ export class ExportOrchestrator {
     }
 
     task.status = 'in_progress';
-    
+
     // Determine formats for this document
     const formats = this.getFormatsForDocument(task.documentType, config);
-    
-    this.stateManager.startDocumentExport(task.documentId, task.documentTitle, task.folderPath, formats);
+
+    this.stateManager.startDocumentExport(
+      task.documentId,
+      task.documentTitle,
+      task.folderPath,
+      formats
+    );
 
     for (let attempt = 0; attempt <= options.maxRetries; attempt++) {
       try {
         // Use circuit breaker for document export with multi-format support
-        const exportResult = await this.circuitBreakerManager.execute(
-          'document-export',
-          () => this.documentExporter.exportDocument(
+        const exportResult = await this.circuitBreakerManager.execute('document-export', () =>
+          this.documentExporter.exportDocument(
             { id: task.documentId, title: task.documentTitle, type: task.documentType } as any,
-            { 
-              preferredFormat: formats[0] as ('native' | 'html' | 'markdown'), 
-              fallbackToHtml: true, 
-              includeMetadata: true 
+            {
+              preferredFormat: formats[0] as 'native' | 'html' | 'markdown',
+              fallbackToHtml: true,
+              includeMetadata: true,
             }
           )
         );
@@ -397,9 +403,9 @@ export class ExportOrchestrator {
           id: 'folder-' + task.folderPath,
           name: task.folderPath,
           type: 'private',
-          fullPath: task.folderPath
+          fullPath: task.folderPath,
         });
-        
+
         const localPath = folderMappingResult.localPath || config.outputDirectory;
 
         // Find the first successful format result to get the content
@@ -409,18 +415,14 @@ export class ExportOrchestrator {
         }
 
         // Use circuit breaker for file writing
-        const writeResult = await this.circuitBreakerManager.execute(
-          'file-write',
-          () => this.fileWriter.writeDocument(
-            localPath,
-            {
-              fileName: task.documentTitle,
-              content: successfulFormat.content!,
-              documentType: task.documentType,
-              exportFormat: successfulFormat.format as 'docx' | 'html' | 'xlsx' | 'markdown'
-            }
-          )
-        ) as FileWriteResult;
+        const writeResult = (await this.circuitBreakerManager.execute('file-write', () =>
+          this.fileWriter.writeDocument(localPath, {
+            fileName: task.documentTitle,
+            content: successfulFormat.content!,
+            documentType: task.documentType,
+            exportFormat: successfulFormat.format as 'docx' | 'html' | 'xlsx' | 'markdown',
+          })
+        )) as FileWriteResult;
 
         if (!writeResult.success) {
           throw new Error(writeResult.error || 'File write failed');
@@ -436,7 +438,6 @@ export class ExportOrchestrator {
 
         this.logger.debug(`Successfully exported: ${task.documentTitle}`);
         return;
-
       } catch (error) {
         const errorContext = {
           operation: 'document_export',
@@ -444,7 +445,7 @@ export class ExportOrchestrator {
           documentTitle: task.documentTitle,
           folderPath: task.folderPath,
           attemptNumber: attempt,
-          timestamp: new Date()
+          timestamp: new Date(),
         };
 
         const categorizedError = await this.errorHandler.handleError(
@@ -458,7 +459,7 @@ export class ExportOrchestrator {
           // Critical error - abort entire operation
           task.status = 'failed';
           task.error = categorizedError.userMessage;
-          
+
           this.stateManager.failDocumentExport(
             task.documentId,
             task.documentTitle,
@@ -467,7 +468,9 @@ export class ExportOrchestrator {
             attempt
           );
 
-          this.logger.error(`Aborting export for ${task.documentTitle}: ${categorizedError.userMessage}`);
+          this.logger.error(
+            `Aborting export for ${task.documentTitle}: ${categorizedError.userMessage}`
+          );
           return;
         }
 
@@ -475,7 +478,7 @@ export class ExportOrchestrator {
           // Skip this document
           task.status = 'failed';
           task.error = categorizedError.userMessage;
-          
+
           this.stateManager.failDocumentExport(
             task.documentId,
             task.documentTitle,
@@ -484,25 +487,29 @@ export class ExportOrchestrator {
             attempt
           );
 
-          this.logger.warn(`Skipping document ${task.documentTitle}: ${categorizedError.userMessage}`);
+          this.logger.warn(
+            `Skipping document ${task.documentTitle}: ${categorizedError.userMessage}`
+          );
           return;
         }
 
         if (recovery.action === 'fallback' && recovery.fallbackData) {
           // Try fallback approach
           this.logger.info(`Using fallback for ${task.documentTitle}: ${recovery.message}`);
-          
+
           if (recovery.fallbackData.alternativeFormat) {
             task.exportFormat = recovery.fallbackData.alternativeFormat;
           }
-          
+
           // Continue with retry using fallback
         }
 
         if (recovery.action === 'retry') {
           if (attempt < options.maxRetries) {
-            const delay = recovery.delay || (options.retryDelay * Math.pow(2, attempt));
-            this.logger.warn(`Retrying ${task.documentTitle} in ${delay}ms (attempt ${attempt + 1}): ${categorizedError.userMessage}`);
+            const delay = recovery.delay || options.retryDelay * Math.pow(2, attempt);
+            this.logger.warn(
+              `Retrying ${task.documentTitle} in ${delay}ms (attempt ${attempt + 1}): ${categorizedError.userMessage}`
+            );
             await this.delay(delay);
             continue;
           }
@@ -512,7 +519,7 @@ export class ExportOrchestrator {
         task.status = 'failed';
         task.error = categorizedError.userMessage;
         task.retryCount = attempt;
-        
+
         this.stateManager.failDocumentExport(
           task.documentId,
           task.documentTitle,
@@ -535,7 +542,7 @@ export class ExportOrchestrator {
     const executing: Promise<void>[] = [];
 
     for (const promise of promises) {
-      const p = promise.then(result => {
+      const p = promise.then((result) => {
         results.push(result);
       });
 
@@ -543,7 +550,10 @@ export class ExportOrchestrator {
 
       if (executing.length >= concurrency) {
         await Promise.race(executing);
-        executing.splice(executing.findIndex(p => p === p), 1);
+        executing.splice(
+          executing.findIndex((p) => p === p),
+          1
+        );
       }
     }
 
@@ -556,11 +566,11 @@ export class ExportOrchestrator {
    */
   private createBatches(tasks: DocumentExportTask[], batchSize: number): DocumentExportTask[][] {
     const batches: DocumentExportTask[][] = [];
-    
+
     for (let i = 0; i < tasks.length; i += batchSize) {
       batches.push(tasks.slice(i, i + batchSize));
     }
-    
+
     return batches;
   }
 
@@ -579,36 +589,36 @@ export class ExportOrchestrator {
    * Determine export format based on document type and config
    */
   private determineExportFormat(
-    documentType: string, 
+    documentType: string,
     configFormat: 'native' | 'html' | 'markdown'
   ): 'docx' | 'html' | 'xlsx' | 'markdown' {
     // If native format is selected, use native format based on document type
     if (configFormat === 'native') {
       switch (documentType.toUpperCase()) {
         case 'DOCUMENT':
-          return 'docx';  // Documents export to DOCX
+          return 'docx'; // Documents export to DOCX
         case 'SPREADSHEET':
-          return 'xlsx';  // Spreadsheets export to XLSX
+          return 'xlsx'; // Spreadsheets export to XLSX
         default:
           // Fallback for unknown types
           return 'html';
       }
     }
-    
+
     // For specific formats, validate compatibility and use if supported
     switch (documentType.toUpperCase()) {
       case 'DOCUMENT':
         if (['html', 'markdown'].includes(configFormat)) {
           return configFormat as 'html' | 'markdown';
         }
-        return 'docx';  // Fallback to native format
+        return 'docx'; // Fallback to native format
       case 'SPREADSHEET':
         if (configFormat === 'html') {
           return 'html';
         }
-        return 'xlsx';  // Fallback to native format
+        return 'xlsx'; // Fallback to native format
       default:
-        return 'html';  // Fallback for unknown types
+        return 'html'; // Fallback for unknown types
     }
   }
 
@@ -621,11 +631,11 @@ export class ExportOrchestrator {
 
     if (usedMB > thresholdMB) {
       this.logger.warn(`Memory usage high (${Math.round(usedMB)}MB), forcing garbage collection`);
-      
+
       if (global.gc) {
         global.gc();
       }
-      
+
       // Brief pause to allow memory cleanup
       await this.delay(1000);
     }
@@ -635,7 +645,7 @@ export class ExportOrchestrator {
    * Wait for current batch to complete
    */
   private async waitForBatchCompletion(): Promise<void> {
-    while (this.currentBatch.some(task => task.status === 'in_progress')) {
+    while (this.currentBatch.some((task) => task.status === 'in_progress')) {
       await this.delay(100);
     }
   }
@@ -645,20 +655,20 @@ export class ExportOrchestrator {
    */
   private generateResult(session: ExportSession): ExportResult {
     const summary = this.stateManager.generateSummary();
-    
+
     return {
       success: session.state.status === 'completed',
       totalDocuments: summary.totalDocuments,
       successfulExports: summary.successfulExports,
       failedExports: summary.failedExports,
       skippedDocuments: summary.skippedDocuments,
-      errors: summary.errors.map(error => ({
+      errors: summary.errors.map((error) => ({
         documentId: error.documentId,
         documentTitle: error.documentTitle,
-        error: error.error
+        error: error.error,
       })),
       outputDirectory: summary.outputDirectory,
-      duration: summary.duration
+      duration: summary.duration,
     };
   }
 
@@ -675,6 +685,6 @@ export class ExportOrchestrator {
    * Utility method for delays
    */
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

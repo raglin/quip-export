@@ -38,7 +38,7 @@ export class EnhancedLogger implements Logger {
       maxFileSize: 10 * 1024 * 1024, // 10MB
       maxFiles: 5,
       enableConsole: true,
-      ...config
+      ...config,
     };
 
     if (this.config.enableFileLogging) {
@@ -73,7 +73,7 @@ export class EnhancedLogger implements Logger {
       message,
       meta,
       sessionId: this.config.sessionId,
-      component: this.config.component
+      component: this.config.component,
     };
 
     if (this.config.enableConsole) {
@@ -89,7 +89,7 @@ export class EnhancedLogger implements Logger {
     const prefix = `[${entry.level}] ${entry.timestamp}`;
     const suffix = entry.component ? ` [${entry.component}]` : '';
     const metaStr = entry.meta ? ` ${JSON.stringify(entry.meta)}` : '';
-    
+
     const fullMessage = `${prefix}${suffix} ${entry.message}${metaStr}`;
 
     switch (entry.level) {
@@ -114,11 +114,11 @@ export class EnhancedLogger implements Logger {
     }
 
     const logLine = JSON.stringify(entry) + '\n';
-    
+
     try {
       fs.appendFileSync(this.currentLogFile, logLine);
       this.logFileSize += Buffer.byteLength(logLine);
-      
+
       if (this.logFileSize > this.config.maxFileSize) {
         this.rotateLogFile();
       }
@@ -135,7 +135,7 @@ export class EnhancedLogger implements Logger {
 
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       this.currentLogFile = path.join(this.config.logDirectory, `migration-${timestamp}.log`);
-      
+
       // Initialize file
       fs.writeFileSync(this.currentLogFile, '');
       this.logFileSize = 0;
@@ -151,7 +151,7 @@ export class EnhancedLogger implements Logger {
     try {
       // Clean up old log files
       this.cleanupOldLogFiles();
-      
+
       // Create new log file
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       this.currentLogFile = path.join(this.config.logDirectory, `migration-${timestamp}.log`);
@@ -164,18 +164,19 @@ export class EnhancedLogger implements Logger {
 
   private cleanupOldLogFiles(): void {
     try {
-      const files = fs.readdirSync(this.config.logDirectory)
-        .filter(file => file.startsWith('migration-') && file.endsWith('.log'))
-        .map(file => ({
+      const files = fs
+        .readdirSync(this.config.logDirectory)
+        .filter((file) => file.startsWith('migration-') && file.endsWith('.log'))
+        .map((file) => ({
           name: file,
           path: path.join(this.config.logDirectory, file),
-          mtime: fs.statSync(path.join(this.config.logDirectory, file)).mtime
+          mtime: fs.statSync(path.join(this.config.logDirectory, file)).mtime,
         }))
         .sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
 
       // Keep only the most recent files
       const filesToDelete = files.slice(this.config.maxFiles - 1);
-      
+
       for (const file of filesToDelete) {
         fs.unlinkSync(file.path);
       }
@@ -188,7 +189,7 @@ export class EnhancedLogger implements Logger {
     const levels: LogLevel[] = ['ERROR', 'WARN', 'INFO', 'DEBUG'];
     const currentLevelIndex = levels.indexOf(this.config.level);
     const messageLevelIndex = levels.indexOf(level);
-    
+
     return messageLevelIndex <= currentLevelIndex;
   }
 
@@ -199,7 +200,7 @@ export class EnhancedLogger implements Logger {
   public createChildLogger(component: string): Logger {
     return new EnhancedLogger({
       ...this.config,
-      component
+      component,
     });
   }
 }
@@ -242,7 +243,7 @@ export class ConsoleLogger implements Logger {
     const levels: LogLevel[] = ['ERROR', 'WARN', 'INFO', 'DEBUG'];
     const currentLevelIndex = levels.indexOf(this.logLevel);
     const messageLevelIndex = levels.indexOf(level);
-    
+
     return messageLevelIndex <= currentLevelIndex;
   }
 }
@@ -251,5 +252,5 @@ export class ConsoleLogger implements Logger {
 export const logger = new EnhancedLogger({
   level: (process.env.LOG_LEVEL as LogLevel) || 'INFO',
   sessionId: process.env.SESSION_ID,
-  enableFileLogging: false
+  enableFileLogging: false,
 });

@@ -27,7 +27,7 @@ export class CLIProgressDisplay {
       refreshInterval: 1000,
       showETA: true,
       showRate: true,
-      ...options
+      ...options,
     };
 
     this.setupEventListeners();
@@ -36,7 +36,7 @@ export class CLIProgressDisplay {
   public start(): void {
     this.logger.info('Migration started');
     this.displayProgress();
-    
+
     if (this.options.refreshInterval > 0) {
       this.displayInterval = setInterval(() => {
         this.displayProgress();
@@ -49,7 +49,7 @@ export class CLIProgressDisplay {
       clearInterval(this.displayInterval);
       this.displayInterval = undefined;
     }
-    
+
     this.displayFinalSummary();
   }
 
@@ -68,13 +68,13 @@ export class CLIProgressDisplay {
           this.logger.info(`Exporting: ${update.documentTitle}${folderInfo}${formatInfo}`);
         }
         break;
-        
+
       case 'folder_change':
         if (this.options.showDetails && update.folderName) {
           this.logger.info(`Processing folder: ${update.folderName}`);
         }
         break;
-        
+
       case 'progress':
         if (this.options.showDetails && update.operation) {
           this.logger.debug(`Operation: ${update.operation}`);
@@ -99,14 +99,14 @@ export class CLIProgressDisplay {
           this.logger.error(`  ✗ ${update.format.toUpperCase()} export failed${errorMsg}`);
         }
         break;
-        
+
       case 'complete':
         if (this.options.showDetails) {
           const sizeInfo = update.fileSize ? ` (${this.formatBytes(update.fileSize)})` : '';
           this.logger.info(`Export completed${sizeInfo}`);
         }
         break;
-        
+
       case 'error':
         if (update.error) {
           this.logger.error(`Export failed: ${update.error.message}`);
@@ -115,8 +115,14 @@ export class CLIProgressDisplay {
     }
 
     // Force display update on significant events
-    if (update.type === 'complete' || update.type === 'error' || update.type === 'folder_change' || 
-        update.type === 'format_start' || update.type === 'format_complete' || update.type === 'format_error') {
+    if (
+      update.type === 'complete' ||
+      update.type === 'error' ||
+      update.type === 'folder_change' ||
+      update.type === 'format_start' ||
+      update.type === 'format_complete' ||
+      update.type === 'format_error'
+    ) {
       this.displayProgress();
     }
   }
@@ -126,20 +132,20 @@ export class CLIProgressDisplay {
     if (now - this.lastDisplayTime < this.options.refreshInterval / 2) {
       return; // Avoid too frequent updates
     }
-    
+
     this.lastDisplayTime = now;
     const state = this.tracker.getState();
-    
+
     // Create progress bar
     const progressBar = this.createProgressBar();
-    
+
     // Create status line
     const statusLine = this.createStatusLine();
-    
+
     // Clear previous line and display new progress
     process.stdout.write('\r\x1b[K'); // Clear current line
     process.stdout.write(`${progressBar} ${statusLine}`);
-    
+
     if (state.processedDocuments === state.totalDocuments) {
       process.stdout.write('\n'); // New line when complete
     }
@@ -150,17 +156,17 @@ export class CLIProgressDisplay {
     const barLength = 30;
     const filledLength = Math.round((percentage / 100) * barLength);
     const emptyLength = barLength - filledLength;
-    
+
     const filled = '█'.repeat(filledLength);
     const empty = '░'.repeat(emptyLength);
-    
+
     return `[${filled}${empty}] ${percentage}%`;
   }
 
   private createStatusLine(): string {
     const state = this.tracker.getState();
     let status = `${state.processedDocuments}/${state.totalDocuments}`;
-    
+
     if (this.options.showRate && state.processingRate) {
       status += ` (${state.processingRate.toFixed(1)} docs/min)`;
     }
@@ -171,8 +177,12 @@ export class CLIProgressDisplay {
         status += ` ${speed}`;
       }
     }
-    
-    if (this.options.showETA && state.estimatedTimeRemaining && state.processedDocuments < state.totalDocuments) {
+
+    if (
+      this.options.showETA &&
+      state.estimatedTimeRemaining &&
+      state.processedDocuments < state.totalDocuments
+    ) {
       const eta = this.tracker.getEstimatedTimeRemaining();
       if (eta) {
         status += ` ETA: ${eta}`;
@@ -183,7 +193,7 @@ export class CLIProgressDisplay {
     if (state.formatProgress && this.options.showDetails) {
       const fp = state.formatProgress;
       status += ` | Formats: ${fp.completedFormats}/${fp.totalFormats}`;
-      
+
       if (state.currentFormat) {
         status += ` (${state.currentFormat.toUpperCase()})`;
       }
@@ -191,20 +201,22 @@ export class CLIProgressDisplay {
 
     if (state.currentFolder && this.options.showDetails) {
       const maxFolderLength = 20;
-      const truncatedFolder = state.currentFolder.length > maxFolderLength 
-        ? state.currentFolder.substring(0, maxFolderLength - 3) + '...'
-        : state.currentFolder;
+      const truncatedFolder =
+        state.currentFolder.length > maxFolderLength
+          ? state.currentFolder.substring(0, maxFolderLength - 3) + '...'
+          : state.currentFolder;
       status += ` | ${truncatedFolder}`;
     }
-    
+
     if (state.currentDocument && this.options.showDetails) {
       const maxLength = 25; // Reduced to make room for format info
-      const truncated = state.currentDocument.length > maxLength 
-        ? state.currentDocument.substring(0, maxLength - 3) + '...'
-        : state.currentDocument;
+      const truncated =
+        state.currentDocument.length > maxLength
+          ? state.currentDocument.substring(0, maxLength - 3) + '...'
+          : state.currentDocument;
       status += ` | ${truncated}`;
     }
-    
+
     return status;
   }
 
@@ -213,7 +225,7 @@ export class CLIProgressDisplay {
     const elapsed = this.tracker.getFormattedElapsedTime();
     const totalBytes = this.tracker.getFormattedTotalBytes();
     const avgSpeed = this.tracker.getFormattedExportSpeed();
-    
+
     console.log('\n' + '='.repeat(60));
     console.log('EXPORT COMPLETE');
     console.log('='.repeat(60));
@@ -221,11 +233,11 @@ export class CLIProgressDisplay {
     console.log(`Successful: ${state.successfulExports}`);
     console.log(`Failed: ${state.failedExports}`);
     console.log(`Total Time: ${elapsed}`);
-    
+
     if (totalBytes !== '0.0 B') {
       console.log(`Data Exported: ${totalBytes}`);
     }
-    
+
     if (state.processingRate) {
       console.log(`Average Rate: ${state.processingRate.toFixed(1)} docs/min`);
     }
@@ -233,10 +245,11 @@ export class CLIProgressDisplay {
     if (avgSpeed) {
       console.log(`Average Speed: ${avgSpeed}`);
     }
-    
-    const successRate = state.totalDocuments > 0 
-      ? ((state.successfulExports / state.totalDocuments) * 100).toFixed(1)
-      : '0';
+
+    const successRate =
+      state.totalDocuments > 0
+        ? ((state.successfulExports / state.totalDocuments) * 100).toFixed(1)
+        : '0';
     console.log(`Success Rate: ${successRate}%`);
     console.log('='.repeat(60));
   }

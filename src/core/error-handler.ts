@@ -13,14 +13,14 @@ export enum ErrorCategory {
   CONFIGURATION = 'configuration',
   MEMORY = 'memory',
   TIMEOUT = 'timeout',
-  UNKNOWN = 'unknown'
+  UNKNOWN = 'unknown',
 }
 
 export enum ErrorSeverity {
   LOW = 'low',
   MEDIUM = 'medium',
   HIGH = 'high',
-  CRITICAL = 'critical'
+  CRITICAL = 'critical',
 }
 
 export enum RecoveryStrategy {
@@ -28,7 +28,7 @@ export enum RecoveryStrategy {
   SKIP = 'skip',
   FALLBACK = 'fallback',
   ABORT = 'abort',
-  MANUAL = 'manual'
+  MANUAL = 'manual',
 }
 
 export interface ErrorContext {
@@ -94,14 +94,14 @@ export class ErrorHandler {
       retriedErrors: 0,
       skippedErrors: 0,
       abortedOperations: 0,
-      recoveredErrors: 0
+      recoveredErrors: 0,
     };
 
     // Initialize counters
-    Object.values(ErrorCategory).forEach(category => {
+    Object.values(ErrorCategory).forEach((category) => {
       this.statistics.errorsByCategory[category] = 0;
     });
-    Object.values(ErrorSeverity).forEach(severity => {
+    Object.values(ErrorSeverity).forEach((severity) => {
       this.statistics.errorsBySeverity[severity] = 0;
     });
   }
@@ -111,16 +111,16 @@ export class ErrorHandler {
    */
   async handleError(error: Error, context: ErrorContext): Promise<CategorizedError> {
     const categorizedError = this.categorizeError(error, context);
-    
+
     // Update statistics
     this.updateStatistics(categorizedError);
-    
+
     // Add to history
     this.addToHistory(categorizedError);
-    
+
     // Log the error
     this.logError(categorizedError);
-    
+
     return categorizedError;
   }
 
@@ -128,8 +128,9 @@ export class ErrorHandler {
    * Determine recovery strategy for an error
    */
   async determineRecovery(categorizedError: CategorizedError): Promise<ErrorRecoveryResult> {
-    const { category, severity, recoveryStrategy, context, isRetryable, maxRetries, retryDelay } = categorizedError;
-    
+    const { category, severity, recoveryStrategy, context, isRetryable, maxRetries, retryDelay } =
+      categorizedError;
+
     switch (recoveryStrategy) {
       case RecoveryStrategy.RETRY:
         if (isRetryable && (context.attemptNumber || 0) < maxRetries) {
@@ -138,60 +139,61 @@ export class ErrorHandler {
             success: true,
             action: 'retry',
             delay: this.calculateRetryDelay(retryDelay, context.attemptNumber || 0),
-            message: `Retrying operation after ${retryDelay}ms delay`
+            message: `Retrying operation after ${retryDelay}ms delay`,
           };
         }
-        // Fall through to skip if max retries exceeded
-        
+      // Fall through to skip if max retries exceeded
+
       case RecoveryStrategy.SKIP:
         this.statistics.skippedErrors++;
         return {
           success: true,
           action: 'skip',
-          message: `Skipping operation due to ${category} error`
+          message: `Skipping operation due to ${category} error`,
         };
-        
-      case RecoveryStrategy.FALLBACK: {
-        const fallbackResult = await this.attemptFallback(categorizedError);
-        if (fallbackResult.success) {
-          this.statistics.recoveredErrors++;
-          return {
-            success: true,
-            action: 'fallback',
-            fallbackData: fallbackResult.data,
-            message: fallbackResult.message
-          };
+
+      case RecoveryStrategy.FALLBACK:
+        {
+          const fallbackResult = await this.attemptFallback(categorizedError);
+          if (fallbackResult.success) {
+            this.statistics.recoveredErrors++;
+            return {
+              success: true,
+              action: 'fallback',
+              fallbackData: fallbackResult.data,
+              message: fallbackResult.message,
+            };
+          }
+          // Fall through to skip if fallback fails
         }
-        // Fall through to skip if fallback fails
-      }
         this.statistics.skippedErrors++;
         return {
           success: true,
           action: 'skip',
-          message: 'Fallback failed, skipping operation'
+          message: 'Fallback failed, skipping operation',
         };
-        
+
       case RecoveryStrategy.ABORT:
         this.statistics.abortedOperations++;
         return {
           success: false,
           action: 'abort',
-          message: `Aborting due to ${severity} ${category} error`
+          message: `Aborting due to ${severity} ${category} error`,
         };
-        
+
       case RecoveryStrategy.MANUAL:
         return {
           success: false,
           action: 'abort',
-          message: 'Manual intervention required'
+          message: 'Manual intervention required',
         };
-        
+
       default:
         this.statistics.skippedErrors++;
         return {
           success: true,
           action: 'skip',
-          message: 'Unknown recovery strategy, skipping'
+          message: 'Unknown recovery strategy, skipping',
         };
     }
   }
@@ -201,27 +203,27 @@ export class ErrorHandler {
    */
   shouldAbortOperation(): boolean {
     const recentErrors = this.getRecentErrors(300000); // Last 5 minutes
-    
+
     // Abort if too many critical errors
-    const criticalErrors = recentErrors.filter(e => e.severity === ErrorSeverity.CRITICAL);
+    const criticalErrors = recentErrors.filter((e) => e.severity === ErrorSeverity.CRITICAL);
     if (criticalErrors.length >= 3) {
       this.logger.error('Aborting operation due to multiple critical errors');
       return true;
     }
-    
+
     // Abort if too many authentication errors
-    const authErrors = recentErrors.filter(e => e.category === ErrorCategory.AUTHENTICATION);
+    const authErrors = recentErrors.filter((e) => e.category === ErrorCategory.AUTHENTICATION);
     if (authErrors.length >= 5) {
       this.logger.error('Aborting operation due to persistent authentication issues');
       return true;
     }
-    
+
     // Abort if error rate is too high
     if (recentErrors.length >= 20) {
       this.logger.error('Aborting operation due to high error rate');
       return true;
     }
-    
+
     return false;
   }
 
@@ -237,14 +239,14 @@ export class ErrorHandler {
    */
   getRecentErrors(timeWindowMs: number): CategorizedError[] {
     const cutoff = new Date(Date.now() - timeWindowMs);
-    return this.errorHistory.filter(error => error.context.timestamp >= cutoff);
+    return this.errorHistory.filter((error) => error.context.timestamp >= cutoff);
   }
 
   /**
    * Get errors by category
    */
   getErrorsByCategory(category: ErrorCategory): CategorizedError[] {
-    return this.errorHistory.filter(error => error.category === category);
+    return this.errorHistory.filter((error) => error.category === category);
   }
 
   /**
@@ -265,11 +267,11 @@ export class ErrorHandler {
   } {
     const recentErrors = this.getRecentErrors(3600000); // Last hour
     const recommendations = this.generateRecommendations();
-    
+
     return {
       summary: this.getStatistics(),
       recentErrors,
-      recommendations
+      recommendations,
     };
   }
 
@@ -279,126 +281,143 @@ export class ErrorHandler {
   private categorizeError(error: Error, context: ErrorContext): CategorizedError {
     const errorMessage = error.message.toLowerCase();
     const errorName = error.name.toLowerCase();
-    
+
     let category = ErrorCategory.UNKNOWN;
     let severity = ErrorSeverity.MEDIUM;
     let recoveryStrategy = RecoveryStrategy.RETRY;
     let isRetryable = true;
     let maxRetries = 3;
     let retryDelay = 1000;
-    
+
     // Authentication errors
-    if (errorMessage.includes('unauthorized') || 
-        errorMessage.includes('authentication') ||
-        errorMessage.includes('invalid token') ||
-        errorMessage.includes('access denied') ||
-        error.name === 'AuthenticationError') {
+    if (
+      errorMessage.includes('unauthorized') ||
+      errorMessage.includes('authentication') ||
+      errorMessage.includes('invalid token') ||
+      errorMessage.includes('access denied') ||
+      error.name === 'AuthenticationError'
+    ) {
       category = ErrorCategory.AUTHENTICATION;
       severity = ErrorSeverity.HIGH;
       recoveryStrategy = RecoveryStrategy.ABORT;
       isRetryable = false;
     }
-    
+
     // Rate limiting errors
-    else if (errorMessage.includes('rate limit') ||
-             errorMessage.includes('too many requests') ||
-             errorMessage.includes('429') ||
-             errorMessage.includes('quota exceeded')) {
+    else if (
+      errorMessage.includes('rate limit') ||
+      errorMessage.includes('too many requests') ||
+      errorMessage.includes('429') ||
+      errorMessage.includes('quota exceeded')
+    ) {
       category = ErrorCategory.API_RATE_LIMIT;
       severity = ErrorSeverity.MEDIUM;
       recoveryStrategy = RecoveryStrategy.RETRY;
       maxRetries = 5;
       retryDelay = 5000; // Longer delay for rate limits
     }
-    
+
     // Network errors
-    else if (errorMessage.includes('network') ||
-             errorMessage.includes('connection') ||
-             errorMessage.includes('enotfound') ||
-             errorMessage.includes('econnreset') ||
-             errorName.includes('network')) {
+    else if (
+      errorMessage.includes('network') ||
+      errorMessage.includes('connection') ||
+      errorMessage.includes('enotfound') ||
+      errorMessage.includes('econnreset') ||
+      errorName.includes('network')
+    ) {
       category = ErrorCategory.API_NETWORK;
       severity = ErrorSeverity.MEDIUM;
       recoveryStrategy = RecoveryStrategy.RETRY;
       maxRetries = 3;
       retryDelay = 2000;
     }
-    
+
     // Server errors (5xx)
-    else if (errorMessage.includes('500') ||
-             errorMessage.includes('502') ||
-             errorMessage.includes('503') ||
-             errorMessage.includes('504') ||
-             errorMessage.includes('internal server error') ||
-             errorMessage.includes('bad gateway') ||
-             errorMessage.includes('service unavailable')) {
+    else if (
+      errorMessage.includes('500') ||
+      errorMessage.includes('502') ||
+      errorMessage.includes('503') ||
+      errorMessage.includes('504') ||
+      errorMessage.includes('internal server error') ||
+      errorMessage.includes('bad gateway') ||
+      errorMessage.includes('service unavailable')
+    ) {
       category = ErrorCategory.API_SERVER;
       severity = ErrorSeverity.HIGH;
       recoveryStrategy = RecoveryStrategy.RETRY;
       maxRetries = 3;
       retryDelay = 3000;
     }
-    
+
     // Client errors (4xx)
-    else if (errorMessage.includes('400') ||
-             errorMessage.includes('404') ||
-             errorMessage.includes('bad request') ||
-             errorMessage.includes('not found')) {
+    else if (
+      errorMessage.includes('400') ||
+      errorMessage.includes('404') ||
+      errorMessage.includes('bad request') ||
+      errorMessage.includes('not found')
+    ) {
       category = ErrorCategory.API_CLIENT;
       severity = ErrorSeverity.MEDIUM;
       recoveryStrategy = RecoveryStrategy.SKIP;
       isRetryable = false;
     }
-    
+
     // File system errors
-    else if (errorMessage.includes('enoent') ||
-             errorMessage.includes('eacces') ||
-             errorMessage.includes('emfile') ||
-             errorMessage.includes('enospc') ||
-             errorMessage.includes('file') ||
-             errorMessage.includes('directory') ||
-             errorMessage.includes('permission')) {
+    else if (
+      errorMessage.includes('enoent') ||
+      errorMessage.includes('eacces') ||
+      errorMessage.includes('emfile') ||
+      errorMessage.includes('enospc') ||
+      errorMessage.includes('file') ||
+      errorMessage.includes('directory') ||
+      errorMessage.includes('permission')
+    ) {
       category = ErrorCategory.FILE_SYSTEM;
       severity = ErrorSeverity.HIGH;
       recoveryStrategy = RecoveryStrategy.RETRY;
       maxRetries = 2;
       retryDelay = 1000;
     }
-    
+
     // Memory errors
-    else if (errorMessage.includes('out of memory') ||
-             errorMessage.includes('heap') ||
-             errorMessage.includes('memory')) {
+    else if (
+      errorMessage.includes('out of memory') ||
+      errorMessage.includes('heap') ||
+      errorMessage.includes('memory')
+    ) {
       category = ErrorCategory.MEMORY;
       severity = ErrorSeverity.CRITICAL;
       recoveryStrategy = RecoveryStrategy.ABORT;
       isRetryable = false;
     }
-    
+
     // Timeout errors
-    else if (errorMessage.includes('timeout') ||
-             errorMessage.includes('etimedout')) {
+    else if (errorMessage.includes('timeout') || errorMessage.includes('etimedout')) {
       category = ErrorCategory.TIMEOUT;
       severity = ErrorSeverity.MEDIUM;
       recoveryStrategy = RecoveryStrategy.RETRY;
       maxRetries = 2;
       retryDelay = 5000;
     }
-    
+
     // Validation errors
-    else if (errorMessage.includes('validation') ||
-             errorMessage.includes('invalid') ||
-             errorMessage.includes('malformed')) {
+    else if (
+      errorMessage.includes('validation') ||
+      errorMessage.includes('invalid') ||
+      errorMessage.includes('malformed')
+    ) {
       category = ErrorCategory.VALIDATION;
       severity = ErrorSeverity.LOW;
       recoveryStrategy = RecoveryStrategy.SKIP;
       isRetryable = false;
     }
-    
+
     // Configuration errors
-    else if (errorMessage.includes('config') ||
-             errorMessage.includes('setting') ||
-             errorMessage.includes('parameter')) {
+    else if (
+      errorMessage.includes('config') ||
+      errorMessage.includes('setting') ||
+      errorMessage.includes('parameter')
+    ) {
       category = ErrorCategory.CONFIGURATION;
       severity = ErrorSeverity.HIGH;
       recoveryStrategy = RecoveryStrategy.ABORT;
@@ -419,7 +438,7 @@ export class ErrorHandler {
       retryDelay,
       message: error.message,
       userMessage,
-      technicalDetails
+      technicalDetails,
     };
   }
 
@@ -437,7 +456,7 @@ export class ErrorHandler {
    */
   private addToHistory(error: CategorizedError): void {
     this.errorHistory.push(error);
-    
+
     // Maintain history size limit
     if (this.errorHistory.length > this.maxHistorySize) {
       this.errorHistory.shift();
@@ -454,7 +473,7 @@ export class ErrorHandler {
       severity: error.severity,
       recoveryStrategy: error.recoveryStrategy,
       context: error.context,
-      message: error.message
+      message: error.message,
     };
 
     switch (error.severity) {
@@ -485,9 +504,11 @@ export class ErrorHandler {
   /**
    * Attempt fallback recovery
    */
-  private async attemptFallback(error: CategorizedError): Promise<{ success: boolean; data?: any; message?: string }> {
+  private async attemptFallback(
+    error: CategorizedError
+  ): Promise<{ success: boolean; data?: any; message?: string }> {
     const { category, context } = error;
-    
+
     switch (category) {
       case ErrorCategory.API_CLIENT:
         // Try alternative export format
@@ -495,11 +516,11 @@ export class ErrorHandler {
           return {
             success: true,
             data: { alternativeFormat: 'html' },
-            message: 'Falling back to HTML export format'
+            message: 'Falling back to HTML export format',
           };
         }
         break;
-        
+
       case ErrorCategory.FILE_SYSTEM:
         // Try alternative file path
         if (context.filePath) {
@@ -507,25 +528,29 @@ export class ErrorHandler {
           return {
             success: true,
             data: { alternativePath },
-            message: 'Using sanitized file path'
+            message: 'Using sanitized file path',
           };
         }
         break;
-        
+
       default:
         return { success: false };
     }
-    
+
     return { success: false };
   }
 
   /**
    * Generate user-friendly error message
    */
-  private generateUserMessage(category: ErrorCategory, _severity: ErrorSeverity, context: ErrorContext): string {
+  private generateUserMessage(
+    category: ErrorCategory,
+    _severity: ErrorSeverity,
+    context: ErrorContext
+  ): string {
     const operation = context.operation.replace('_', ' ');
     const document = context.documentTitle ? ` for "${context.documentTitle}"` : '';
-    
+
     switch (category) {
       case ErrorCategory.AUTHENTICATION:
         return `Authentication failed. Please check your credentials and try again.`;
@@ -555,21 +580,29 @@ export class ErrorHandler {
   /**
    * Generate technical error details
    */
-  private generateTechnicalDetails(error: Error, category: ErrorCategory, context: ErrorContext): string {
-    return JSON.stringify({
-      error: {
-        name: error.name,
-        message: error.message,
-        stack: error.stack?.split('\n').slice(0, 5).join('\n') // First 5 lines of stack
+  private generateTechnicalDetails(
+    error: Error,
+    category: ErrorCategory,
+    context: ErrorContext
+  ): string {
+    return JSON.stringify(
+      {
+        error: {
+          name: error.name,
+          message: error.message,
+          stack: error.stack?.split('\n').slice(0, 5).join('\n'), // First 5 lines of stack
+        },
+        category,
+        context: {
+          operation: context.operation,
+          documentId: context.documentId,
+          timestamp: context.timestamp.toISOString(),
+          attemptNumber: context.attemptNumber,
+        },
       },
-      category,
-      context: {
-        operation: context.operation,
-        documentId: context.documentId,
-        timestamp: context.timestamp.toISOString(),
-        attemptNumber: context.attemptNumber
-      }
-    }, null, 2);
+      null,
+      2
+    );
   }
 
   /**
@@ -578,31 +611,31 @@ export class ErrorHandler {
   private generateRecommendations(): string[] {
     const recommendations: string[] = [];
     const stats = this.statistics;
-    
+
     if (stats.errorsByCategory[ErrorCategory.AUTHENTICATION] > 0) {
       recommendations.push('Check your authentication credentials and ensure they are still valid');
     }
-    
+
     if (stats.errorsByCategory[ErrorCategory.API_RATE_LIMIT] > 5) {
       recommendations.push('Consider increasing rate limit delays to reduce API throttling');
     }
-    
+
     if (stats.errorsByCategory[ErrorCategory.API_NETWORK] > 10) {
       recommendations.push('Check your network connection stability');
     }
-    
+
     if (stats.errorsByCategory[ErrorCategory.FILE_SYSTEM] > 5) {
       recommendations.push('Check available disk space and file system permissions');
     }
-    
+
     if (stats.errorsByCategory[ErrorCategory.MEMORY] > 0) {
       recommendations.push('Reduce batch size or increase available memory');
     }
-    
+
     if (stats.totalErrors > 50) {
       recommendations.push('Consider running the export in smaller batches');
     }
-    
+
     return recommendations;
   }
 
@@ -615,11 +648,11 @@ export class ErrorHandler {
     this.statistics.skippedErrors = 0;
     this.statistics.abortedOperations = 0;
     this.statistics.recoveredErrors = 0;
-    
-    Object.values(ErrorCategory).forEach(category => {
+
+    Object.values(ErrorCategory).forEach((category) => {
       this.statistics.errorsByCategory[category] = 0;
     });
-    Object.values(ErrorSeverity).forEach(severity => {
+    Object.values(ErrorSeverity).forEach((severity) => {
       this.statistics.errorsBySeverity[severity] = 0;
     });
   }

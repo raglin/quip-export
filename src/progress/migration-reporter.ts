@@ -99,9 +99,9 @@ export class MigrationReporter {
       quipUrl,
       localPath: '',
       folderName,
-      status: 'skipped'
+      status: 'skipped',
     };
-    
+
     this.documentMappings.set(quipDocumentId, mapping);
   }
 
@@ -124,11 +124,7 @@ export class MigrationReporter {
     }
   }
 
-  public recordDocumentFailure(
-    quipDocumentId: string,
-    error: Error,
-    context?: any
-  ): void {
+  public recordDocumentFailure(quipDocumentId: string, error: Error, context?: any): void {
     const mapping = this.documentMappings.get(quipDocumentId);
     if (mapping) {
       mapping.status = 'failed';
@@ -151,7 +147,7 @@ export class MigrationReporter {
       errorType: error.constructor.name,
       errorMessage: error.message,
       stackTrace: error.stack,
-      context
+      context,
     };
 
     this.errors.push(errorReport);
@@ -163,17 +159,17 @@ export class MigrationReporter {
     options: Partial<ReportOptions> = {}
   ): Promise<MigrationReport> {
     this.endTime = new Date();
-    
+
     const reportOptions: ReportOptions = {
       includeAuditTrail: true,
       includeErrorDetails: true,
       includeStatistics: true,
       outputFormat: 'json',
       outputDirectory: './reports',
-      ...options
+      ...options,
     };
 
-    const auditEvents = reportOptions.includeAuditTrail 
+    const auditEvents = reportOptions.includeAuditTrail
       ? await this.auditLogger.getAuditEvents()
       : [];
 
@@ -185,8 +181,10 @@ export class MigrationReporter {
       summary: this.generateSummary(finalState),
       documentMappings: Array.from(this.documentMappings.values()),
       errors: reportOptions.includeErrorDetails ? this.errors : [],
-      statistics: reportOptions.includeStatistics ? this.generateStatistics() : {} as MigrationStatistics,
-      auditTrail: auditEvents
+      statistics: reportOptions.includeStatistics
+        ? this.generateStatistics()
+        : ({} as MigrationStatistics),
+      auditTrail: auditEvents,
     };
 
     await this.saveReport(report, reportOptions);
@@ -195,25 +193,24 @@ export class MigrationReporter {
 
   private generateSummary(state: ProgressState): MigrationSummary {
     const mappings = Array.from(this.documentMappings.values());
-    const successfulExports = mappings.filter(m => m.status === 'success').length;
-    const failedExports = mappings.filter(m => m.status === 'failed').length;
-    const skippedDocuments = mappings.filter(m => m.status === 'skipped').length;
-    
+    const successfulExports = mappings.filter((m) => m.status === 'success').length;
+    const failedExports = mappings.filter((m) => m.status === 'failed').length;
+    const skippedDocuments = mappings.filter((m) => m.status === 'skipped').length;
+
     const totalDataExported = mappings
-      .filter(m => m.status === 'success' && m.fileSize)
+      .filter((m) => m.status === 'success' && m.fileSize)
       .reduce((total, m) => total + (m.fileSize || 0), 0);
 
     const totalProcessingTime = mappings
-      .filter(m => m.processingTime)
+      .filter((m) => m.processingTime)
       .reduce((total, m) => total + (m.processingTime || 0), 0);
 
-    const averageProcessingTime = mappings.length > 0 
-      ? totalProcessingTime / mappings.length 
-      : 0;
+    const averageProcessingTime = mappings.length > 0 ? totalProcessingTime / mappings.length : 0;
 
-    const duration = this.endTime && this.startTime 
-      ? (this.endTime.getTime() - this.startTime.getTime()) / 1000 // seconds
-      : 1;
+    const duration =
+      this.endTime && this.startTime
+        ? (this.endTime.getTime() - this.startTime.getTime()) / 1000 // seconds
+        : 1;
 
     const exportSpeed = totalDataExported / duration;
 
@@ -222,72 +219,85 @@ export class MigrationReporter {
       successfulExports,
       failedExports,
       skippedDocuments,
-      successRate: state.totalDocuments > 0 
-        ? (successfulExports / state.totalDocuments) * 100 
-        : 0,
+      successRate: state.totalDocuments > 0 ? (successfulExports / state.totalDocuments) * 100 : 0,
       averageProcessingTime,
       totalDataExported,
-      exportSpeed
+      exportSpeed,
     };
   }
 
   private generateStatistics(): MigrationStatistics {
     const mappings = Array.from(this.documentMappings.values());
-    const successfulMappings = mappings.filter(m => m.status === 'success');
-    
-    const duration = this.endTime && this.startTime 
-      ? (this.endTime.getTime() - this.startTime.getTime()) / (1000 * 60 * 60) // hours
-      : 1;
+    const successfulMappings = mappings.filter((m) => m.status === 'success');
+
+    const duration =
+      this.endTime && this.startTime
+        ? (this.endTime.getTime() - this.startTime.getTime()) / (1000 * 60 * 60) // hours
+        : 1;
 
     const documentsPerHour = mappings.length / duration;
 
     const fileSizes = successfulMappings
-      .map(m => m.fileSize)
+      .map((m) => m.fileSize)
       .filter((size): size is number => size !== undefined);
 
-    const averageFileSize = fileSizes.length > 0 
-      ? fileSizes.reduce((sum, size) => sum + size, 0) / fileSizes.length 
-      : 0;
+    const averageFileSize =
+      fileSizes.length > 0 ? fileSizes.reduce((sum, size) => sum + size, 0) / fileSizes.length : 0;
 
-    const largestFile = successfulMappings.reduce((largest, mapping) => {
-      if (!mapping.fileSize) return largest;
-      if (!largest || mapping.fileSize > largest.size) {
-        return { title: mapping.quipDocumentTitle, size: mapping.fileSize };
-      }
-      return largest;
-    }, null as { title: string; size: number } | null) || { title: 'N/A', size: 0 };
+    const largestFile = successfulMappings.reduce(
+      (largest, mapping) => {
+        if (!mapping.fileSize) return largest;
+        if (!largest || mapping.fileSize > largest.size) {
+          return { title: mapping.quipDocumentTitle, size: mapping.fileSize };
+        }
+        return largest;
+      },
+      null as { title: string; size: number } | null
+    ) || { title: 'N/A', size: 0 };
 
-    const smallestFile = successfulMappings.reduce((smallest, mapping) => {
-      if (!mapping.fileSize) return smallest;
-      if (!smallest || mapping.fileSize < smallest.size) {
-        return { title: mapping.quipDocumentTitle, size: mapping.fileSize };
-      }
-      return smallest;
-    }, null as { title: string; size: number } | null) || { title: 'N/A', size: 0 };
+    const smallestFile = successfulMappings.reduce(
+      (smallest, mapping) => {
+        if (!mapping.fileSize) return smallest;
+        if (!smallest || mapping.fileSize < smallest.size) {
+          return { title: mapping.quipDocumentTitle, size: mapping.fileSize };
+        }
+        return smallest;
+      },
+      null as { title: string; size: number } | null
+    ) || { title: 'N/A', size: 0 };
 
-    const formatDistribution = successfulMappings.reduce((dist, mapping) => {
-      const format = mapping.exportFormat || 'unknown';
-      dist[format] = (dist[format] || 0) + 1;
-      return dist;
-    }, {} as { [format: string]: number });
+    const formatDistribution = successfulMappings.reduce(
+      (dist, mapping) => {
+        const format = mapping.exportFormat || 'unknown';
+        dist[format] = (dist[format] || 0) + 1;
+        return dist;
+      },
+      {} as { [format: string]: number }
+    );
 
-    const errorDistribution = this.errors.reduce((dist, error) => {
-      dist[error.errorType] = (dist[error.errorType] || 0) + 1;
-      return dist;
-    }, {} as { [errorType: string]: number });
+    const errorDistribution = this.errors.reduce(
+      (dist, error) => {
+        dist[error.errorType] = (dist[error.errorType] || 0) + 1;
+        return dist;
+      },
+      {} as { [errorType: string]: number }
+    );
 
     const processingTimes = successfulMappings
-      .map(m => m.processingTime)
+      .map((m) => m.processingTime)
       .filter((time): time is number => time !== undefined);
 
-    const processingTimeDistribution = processingTimes.reduce((dist, time) => {
-      const minutes = time / (1000 * 60);
-      if (minutes < 1) dist.under1min++;
-      else if (minutes < 5) dist.under5min++;
-      else if (minutes < 15) dist.under15min++;
-      else dist.over15min++;
-      return dist;
-    }, { under1min: 0, under5min: 0, under15min: 0, over15min: 0 });
+    const processingTimeDistribution = processingTimes.reduce(
+      (dist, time) => {
+        const minutes = time / (1000 * 60);
+        if (minutes < 1) dist.under1min++;
+        else if (minutes < 5) dist.under5min++;
+        else if (minutes < 15) dist.under15min++;
+        else dist.over15min++;
+        return dist;
+      },
+      { under1min: 0, under5min: 0, under15min: 0, over15min: 0 }
+    );
 
     return {
       documentsPerHour,
@@ -296,7 +306,7 @@ export class MigrationReporter {
       smallestFile,
       formatDistribution,
       errorDistribution,
-      processingTimeDistribution
+      processingTimeDistribution,
     };
   }
 
@@ -323,7 +333,9 @@ export class MigrationReporter {
 
       this.logger.info(`Migration report saved to ${options.outputDirectory}`);
     } catch (error) {
-      this.logger.error('Failed to save migration report', { error: error instanceof Error ? error.message : String(error) });
+      this.logger.error('Failed to save migration report', {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -360,7 +372,7 @@ export class MigrationReporter {
   private generateHtmlReport(report: MigrationReport): string {
     const successRate = report.summary.successRate.toFixed(1);
     const duration = this.formatDuration(report.duration);
-    
+
     return `
 <!DOCTYPE html>
 <html>
@@ -428,7 +440,9 @@ export class MigrationReporter {
             </tr>
         </thead>
         <tbody>
-            ${report.documentMappings.map(mapping => `
+            ${report.documentMappings
+              .map(
+                (mapping) => `
                 <tr>
                     <td><a href="${mapping.quipUrl}" target="_blank">${mapping.quipDocumentTitle}</a></td>
                     <td>${mapping.folderName || 'N/A'}</td>
@@ -438,11 +452,15 @@ export class MigrationReporter {
                     <td>${mapping.exportFormat || 'N/A'}</td>
                     <td>${mapping.processingTime ? this.formatDuration(mapping.processingTime) : 'N/A'}</td>
                 </tr>
-            `).join('')}
+            `
+              )
+              .join('')}
         </tbody>
     </table>
 
-    ${report.errors.length > 0 ? `
+    ${
+      report.errors.length > 0
+        ? `
     <div class="error-section">
         <h2>Errors (${report.errors.length})</h2>
         <table>
@@ -455,18 +473,24 @@ export class MigrationReporter {
                 </tr>
             </thead>
             <tbody>
-                ${report.errors.map(error => `
+                ${report.errors
+                  .map(
+                    (error) => `
                     <tr>
                         <td>${error.timestamp.toISOString()}</td>
                         <td>${error.documentTitle || 'N/A'}</td>
                         <td>${error.errorType}</td>
                         <td>${error.errorMessage}</td>
                     </tr>
-                `).join('')}
+                `
+                  )
+                  .join('')}
             </tbody>
         </table>
     </div>
-    ` : ''}
+    `
+        : ''
+    }
 </body>
 </html>`;
   }
@@ -482,10 +506,10 @@ export class MigrationReporter {
       'File Size (bytes)',
       'Export Format',
       'Processing Time (ms)',
-      'Error Message'
+      'Error Message',
     ];
 
-    const rows = report.documentMappings.map(mapping => [
+    const rows = report.documentMappings.map((mapping) => [
       mapping.quipDocumentId,
       `"${mapping.quipDocumentTitle}"`,
       mapping.quipUrl,
@@ -495,10 +519,10 @@ export class MigrationReporter {
       mapping.fileSize || '',
       mapping.exportFormat || '',
       mapping.processingTime || '',
-      `"${mapping.error || ''}"`
+      `"${mapping.error || ''}"`,
     ]);
 
-    return [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+    return [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
   }
 
   private formatDuration(milliseconds: number): string {

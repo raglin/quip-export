@@ -46,7 +46,6 @@ async function exampleUsage(): Promise<void> {
 
     // Example: Logout
     // await authManager.logout();
-
   } catch (error) {
     console.error('Authentication error:', error);
   }

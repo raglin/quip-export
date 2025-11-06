@@ -1,8 +1,4 @@
-import { 
-  IAuthManager, 
-  AuthenticationResult, 
-  QuipAuthConfig 
-} from './types';
+import { IAuthManager, AuthenticationResult, QuipAuthConfig } from './types';
 import { TokenStorage, ITokenStorage, StoredToken } from './token-storage';
 
 /**
@@ -13,10 +9,7 @@ export class AuthManager implements IAuthManager {
   private readonly tokenStorage: ITokenStorage;
   private readonly quipConfig: QuipAuthConfig;
 
-  constructor(
-    quipConfig: QuipAuthConfig,
-    tokenStorage?: ITokenStorage
-  ) {
+  constructor(quipConfig: QuipAuthConfig, tokenStorage?: ITokenStorage) {
     this.quipConfig = quipConfig;
     this.tokenStorage = tokenStorage || new TokenStorage();
   }
@@ -30,7 +23,7 @@ export class AuthManager implements IAuthManager {
     } catch (error) {
       return {
         success: false,
-        error: `Quip authentication failed: ${error instanceof Error ? error.message : String(error)}`
+        error: `Quip authentication failed: ${error instanceof Error ? error.message : String(error)}`,
       };
     }
   }
@@ -40,11 +33,11 @@ export class AuthManager implements IAuthManager {
    */
   private async authenticateQuipWithPersonalToken(): Promise<AuthenticationResult> {
     console.log('Authenticating with Quip using personal access token...');
-    
+
     if (!this.quipConfig.personalAccessToken) {
       return {
         success: false,
-        error: 'Personal access token not provided'
+        error: 'Personal access token not provided',
       };
     }
 
@@ -52,15 +45,15 @@ export class AuthManager implements IAuthManager {
     try {
       const response = await fetch(`${this.quipConfig.baseUrl}/1/users/current`, {
         headers: {
-          'Authorization': `Bearer ${this.quipConfig.personalAccessToken}`,
-          'Content-Type': 'application/json'
-        }
+          Authorization: `Bearer ${this.quipConfig.personalAccessToken}`,
+          'Content-Type': 'application/json',
+        },
       });
 
       if (!response.ok) {
         return {
           success: false,
-          error: `Token validation failed: ${response.status} ${response.statusText}`
+          error: `Token validation failed: ${response.status} ${response.statusText}`,
         };
       }
 
@@ -69,26 +62,24 @@ export class AuthManager implements IAuthManager {
         accessToken: this.quipConfig.personalAccessToken,
         refreshToken: undefined,
         expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // Personal tokens don't expire, set far future
-        tokenType: 'Bearer'
+        tokenType: 'Bearer',
       };
-      
+
       await this.tokenStorage.storeToken('quip', token);
       console.log('Quip personal access token validated and stored securely.');
-      
+
       return {
         success: true,
         accessToken: this.quipConfig.personalAccessToken,
-        expiresAt: token.expiresAt
+        expiresAt: token.expiresAt,
       };
     } catch (error) {
       return {
         success: false,
-        error: `Token validation failed: ${error instanceof Error ? error.message : String(error)}`
+        error: `Token validation failed: ${error instanceof Error ? error.message : String(error)}`,
       };
     }
   }
-
-
 
   /**
    * Check if user is authenticated for Quip
@@ -104,7 +95,7 @@ export class AuthManager implements IAuthManager {
   async getValidToken(): Promise<string | null> {
     try {
       const storedToken = await this.tokenStorage.getToken('quip');
-      
+
       if (!storedToken) {
         return null;
       }
@@ -136,7 +127,7 @@ export class AuthManager implements IAuthManager {
     const quipToken = await this.tokenStorage.getToken('quip');
 
     return {
-      quip: quipToken !== null
+      quip: quipToken !== null,
     };
   }
 
@@ -145,15 +136,15 @@ export class AuthManager implements IAuthManager {
    */
   async validateAuthentication(): Promise<{ valid: boolean; errors: string[] }> {
     const errors: string[] = [];
-    
+
     const quipToken = await this.getValidToken();
     if (!quipToken) {
       errors.push('Quip authentication required. Please run authentication first.');
     }
-    
+
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 }

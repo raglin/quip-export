@@ -15,7 +15,7 @@ export class ConfigManager implements IConfigValidator {
       retryDelay: DEFAULT_CONFIG.RETRY_DELAY,
       outputFormat: DEFAULT_CONFIG.OUTPUT_FORMAT,
       preserveFolderStructure: DEFAULT_CONFIG.PRESERVE_FOLDER_STRUCTURE,
-      includeSharedDocuments: DEFAULT_CONFIG.INCLUDE_SHARED_DOCUMENTS
+      includeSharedDocuments: DEFAULT_CONFIG.INCLUDE_SHARED_DOCUMENTS,
     };
   }
 
@@ -26,7 +26,7 @@ export class ConfigManager implements IConfigValidator {
     const defaultConfig = ConfigManager.createDefault();
     return {
       ...defaultConfig,
-      ...userConfig
+      ...userConfig,
     };
   }
 
@@ -56,11 +56,9 @@ export class ConfigManager implements IConfigValidator {
       errors.push(`Output format must be one of: ${SUPPORTED_DOCUMENT_FORMATS.join(', ')}`);
     }
 
-
-
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -99,7 +97,7 @@ export class ConfigManager implements IConfigValidator {
       retryAttempts: Math.max(0, Math.min(10, Math.floor(config.retryAttempts))),
       retryDelay: Math.max(100, Math.min(60000, Math.floor(config.retryDelay))),
 
-      outputFormat: this.migrateOutputFormat(config.outputFormat)
+      outputFormat: this.migrateOutputFormat(config.outputFormat),
     };
   }
 
@@ -114,7 +112,7 @@ export class ConfigManager implements IConfigValidator {
       'Output Format': config.outputFormat,
       'Preserve Folder Structure': config.preserveFolderStructure,
 
-      'Include Shared Documents': config.includeSharedDocuments
+      'Include Shared Documents': config.includeSharedDocuments,
     };
   }
 
@@ -133,7 +131,9 @@ export class ConfigManager implements IConfigValidator {
       const parsed = JSON.parse(configJson) as Partial<MigrationConfig>;
       return ConfigManager.mergeWithDefaults(parsed);
     } catch (error) {
-      throw new Error(`Invalid configuration JSON: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Invalid configuration JSON: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -149,7 +149,7 @@ export class ConfigManager implements IConfigValidator {
           ...base,
           batchSize: 5,
           retryAttempts: 5,
-          retryDelay: 2000
+          retryDelay: 2000,
         };
 
       case 'balanced':
@@ -157,7 +157,7 @@ export class ConfigManager implements IConfigValidator {
           ...base,
           batchSize: 10,
           retryAttempts: 3,
-          retryDelay: 1000
+          retryDelay: 1000,
         };
 
       case 'aggressive':
@@ -165,7 +165,7 @@ export class ConfigManager implements IConfigValidator {
           ...base,
           batchSize: 20,
           retryAttempts: 2,
-          retryDelay: 500
+          retryDelay: 500,
         };
 
       default:

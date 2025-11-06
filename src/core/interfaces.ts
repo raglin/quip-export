@@ -1,6 +1,12 @@
 // Core migration interfaces
 
-import { MigrationConfig, MigrationState, MigrationReport, QuipDocument, ProgressInfo } from '../types';
+import {
+  MigrationConfig,
+  MigrationState,
+  MigrationReport,
+  QuipDocument,
+  ProgressInfo,
+} from '../types';
 import { ExportConfig } from './export-types';
 import { BatchProcessingOptions, ProcessingResult, MigrationSession } from './types';
 
@@ -13,7 +19,10 @@ export interface IMigrationOrchestrator {
 }
 
 export interface IBatchProcessor {
-  processBatch(documents: QuipDocument[], options: BatchProcessingOptions): Promise<ProcessingResult>;
+  processBatch(
+    documents: QuipDocument[],
+    options: BatchProcessingOptions
+  ): Promise<ProcessingResult>;
   setProgressCallback(callback: (progress: ProgressInfo) => void): void;
 }
 
@@ -25,7 +34,11 @@ export interface IStateManager {
   saveSession(session: MigrationSession): Promise<void>;
   loadSession(sessionId: string): Promise<MigrationSession | null>;
   updateSession(sessionId: string, updates: Partial<MigrationSession>): Promise<void>;
-  createSession(sessionId: string, config: MigrationConfig, documents: QuipDocument[]): Promise<MigrationSession>;
+  createSession(
+    sessionId: string,
+    config: MigrationConfig,
+    documents: QuipDocument[]
+  ): Promise<MigrationSession>;
 }
 
 export interface IErrorHandler {

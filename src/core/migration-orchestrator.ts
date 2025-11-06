@@ -1,8 +1,19 @@
 // Main migration orchestrator that coordinates the entire migration process
 
 import { v4 as uuidv4 } from 'uuid';
-import { MigrationConfig, MigrationState, MigrationReport, QuipDocument, ProgressCallback } from '../types';
-import { IMigrationOrchestrator, IBatchProcessor, IStateManager, IErrorHandler } from './interfaces';
+import {
+  MigrationConfig,
+  MigrationState,
+  MigrationReport,
+  QuipDocument,
+  ProgressCallback,
+} from '../types';
+import {
+  IMigrationOrchestrator,
+  IBatchProcessor,
+  IStateManager,
+  IErrorHandler,
+} from './interfaces';
 import { StateManager } from './state-manager';
 // import { BatchProcessor } from './batch-processor';
 // import { ErrorHandler } from './error-handler';
@@ -26,12 +37,12 @@ export class MigrationOrchestrator implements IMigrationOrchestrator {
   ) {
     this.stateManager = stateManager || new StateManager();
     // TODO: Fix batch processor and error handler initialization
-    this.batchProcessor = batchProcessor || {} as IBatchProcessor;
-    this.errorHandler = errorHandler || {} as IErrorHandler;
+    this.batchProcessor = batchProcessor || ({} as IBatchProcessor);
+    this.errorHandler = errorHandler || ({} as IErrorHandler);
     this.circuitBreaker = new CircuitBreaker({
       failureThreshold: 5,
       resetTimeout: 60000,
-      monitoringPeriod: 30000
+      monitoringPeriod: 30000,
     });
 
     // Set up progress callback for batch processor
@@ -73,7 +84,10 @@ export class MigrationOrchestrator implements IMigrationOrchestrator {
 
     // Adjust batch size based on memory if needed
     if (memoryRecommendations.memoryStatus === 'low') {
-      sanitizedConfig.batchSize = Math.min(sanitizedConfig.batchSize, memoryRecommendations.recommendedBatchSize);
+      sanitizedConfig.batchSize = Math.min(
+        sanitizedConfig.batchSize,
+        memoryRecommendations.recommendedBatchSize
+      );
     }
 
     // Create migration session
@@ -81,7 +95,7 @@ export class MigrationOrchestrator implements IMigrationOrchestrator {
     this.activeSessions.set(sessionId, session);
 
     // Start migration process
-    this.executeMigration(sessionId).catch(error => {
+    this.executeMigration(sessionId).catch((error) => {
       console.error(`Migration ${sessionId} failed:`, error);
     });
 
@@ -154,7 +168,7 @@ export class MigrationOrchestrator implements IMigrationOrchestrator {
       failedMigrations: state.failedMigrations,
       duration,
       errors: state.errors,
-      documentMappings: [] // This would be populated with actual mappings
+      documentMappings: [], // This would be populated with actual mappings
     };
   }
 
@@ -170,7 +184,7 @@ export class MigrationOrchestrator implements IMigrationOrchestrator {
     try {
       // Get documents that haven't been processed yet
       const remainingDocuments = this.getRemainingDocuments(session);
-      
+
       if (remainingDocuments.length === 0) {
         await this.completeMigration(sessionId);
         return;
@@ -180,13 +194,13 @@ export class MigrationOrchestrator implements IMigrationOrchestrator {
       const batchOptions: BatchProcessingOptions = {
         batchSize: session.config.batchSize,
         concurrency: MemoryManager.getMemoryRecommendations().recommendedConcurrency,
-        delayBetweenBatches: session.config.retryDelay
+        delayBetweenBatches: session.config.retryDelay,
       };
 
       // Process documents in batches with circuit breaker protection
       await this.circuitBreaker.execute(async () => {
         const result = await this.batchProcessor.processBatch(remainingDocuments, batchOptions);
-        
+
         // Update session state
         session.state.processedDocuments += result.processedCount;
         session.state.successfulMigrations += result.processedCount - result.errors.length;
@@ -194,13 +208,13 @@ export class MigrationOrchestrator implements IMigrationOrchestrator {
         session.state.lastUpdateTime = new Date();
 
         // Add errors to session
-        result.errors.forEach(error => {
+        result.errors.forEach((error) => {
           session.state.errors.push({
             documentId: error.documentId,
             documentTitle: this.getDocumentTitle(error.documentId, session.documents),
             error: error.error,
             timestamp: new Date(),
-            retryCount: 0
+            retryCount: 0,
           });
         });
 
@@ -214,7 +228,6 @@ export class MigrationOrchestrator implements IMigrationOrchestrator {
       if (session.state.processedDocuments >= session.state.totalDocuments) {
         await this.completeMigration(sessionId);
       }
-
     } catch (error) {
       await this.handleMigrationError(sessionId, error as Error);
     }
@@ -234,7 +247,7 @@ export class MigrationOrchestrator implements IMigrationOrchestrator {
    * Get document title by ID
    */
   private getDocumentTitle(documentId: string, documents: QuipDocument[]): string {
-    const document = documents.find(doc => doc.id === documentId);
+    const document = documents.find((doc) => doc.id === documentId);
     return document?.title || 'Unknown Document';
   }
 
@@ -259,7 +272,7 @@ export class MigrationOrchestrator implements IMigrationOrchestrator {
         current: session.state.totalDocuments,
         total: session.state.totalDocuments,
         percentage: 100,
-        currentItem: 'Migration completed'
+        currentItem: 'Migration completed',
       });
     }
 
@@ -278,13 +291,13 @@ export class MigrationOrchestrator implements IMigrationOrchestrator {
     // Use error handler to determine if we should retry
     const shouldRetry = await this.errorHandler.handleError(error, {
       operation: 'migration',
-      timestamp: new Date()
+      timestamp: new Date(),
     });
 
     if (shouldRetry) {
       // Retry the migration after a delay
       setTimeout(() => {
-        this.executeMigration(sessionId).catch(retryError => {
+        this.executeMigration(sessionId).catch((retryError) => {
           console.error(`Migration retry failed for ${sessionId}:`, retryError);
         });
       }, session.config.retryDelay);
@@ -295,7 +308,7 @@ export class MigrationOrchestrator implements IMigrationOrchestrator {
         documentTitle: 'Migration Process',
         error: error.message,
         timestamp: new Date(),
-        retryCount: 0
+        retryCount: 0,
       });
 
       session.state.lastUpdateTime = new Date();
@@ -329,16 +342,18 @@ export class MigrationOrchestrator implements IMigrationOrchestrator {
   }> {
     const state = await this.getMigrationState(sessionId);
     const progressPercentage = Math.round((state.processedDocuments / state.totalDocuments) * 100);
-    
+
     // Calculate average processing time
     const elapsedTime = state.lastUpdateTime.getTime() - state.startTime.getTime();
-    const averageProcessingTime = state.processedDocuments > 0 ? 
-      elapsedTime / state.processedDocuments : 0;
+    const averageProcessingTime =
+      state.processedDocuments > 0 ? elapsedTime / state.processedDocuments : 0;
 
     // Estimate remaining time
     const remainingDocuments = state.totalDocuments - state.processedDocuments;
-    const estimatedTimeRemaining = remainingDocuments > 0 && averageProcessingTime > 0 ?
-      remainingDocuments * averageProcessingTime : undefined;
+    const estimatedTimeRemaining =
+      remainingDocuments > 0 && averageProcessingTime > 0
+        ? remainingDocuments * averageProcessingTime
+        : undefined;
 
     return {
       totalDocuments: state.totalDocuments,
@@ -347,7 +362,7 @@ export class MigrationOrchestrator implements IMigrationOrchestrator {
       failedMigrations: state.failedMigrations,
       progressPercentage,
       estimatedTimeRemaining,
-      averageProcessingTime
+      averageProcessingTime,
     };
   }
 

@@ -28,7 +28,15 @@ export interface FormatProgress {
 }
 
 export interface ProgressUpdate {
-  type: 'start' | 'progress' | 'complete' | 'error' | 'folder_change' | 'format_start' | 'format_complete' | 'format_error';
+  type:
+    | 'start'
+    | 'progress'
+    | 'complete'
+    | 'error'
+    | 'folder_change'
+    | 'format_start'
+    | 'format_complete'
+    | 'format_error';
   documentId?: string;
   documentTitle?: string;
   folderName?: string;
@@ -48,7 +56,7 @@ export class ProgressTracker extends EventEmitter {
   constructor(sessionId: string, totalDocuments: number) {
     super();
     this.startTime = new Date();
-    
+
     this.state = {
       sessionId,
       totalDocuments,
@@ -57,7 +65,7 @@ export class ProgressTracker extends EventEmitter {
       failedExports: 0,
       startTime: this.startTime,
       lastUpdateTime: this.startTime,
-      totalBytesProcessed: 0
+      totalBytesProcessed: 0,
     };
   }
 
@@ -65,7 +73,12 @@ export class ProgressTracker extends EventEmitter {
     return { ...this.state };
   }
 
-  public startDocument(documentId: string, documentTitle: string, folderName?: string, formats?: string[]): void {
+  public startDocument(
+    documentId: string,
+    documentTitle: string,
+    folderName?: string,
+    formats?: string[]
+  ): void {
     this.state.currentDocument = documentTitle;
     this.state.currentFolder = folderName;
     this.state.currentOperation = 'Exporting';
@@ -78,10 +91,13 @@ export class ProgressTracker extends EventEmitter {
         totalFormats: formats.length,
         completedFormats: 0,
         currentFormatIndex: 0,
-        formatResults: formats.reduce((acc, format) => {
-          acc[format] = 'pending';
-          return acc;
-        }, {} as { [format: string]: 'pending' | 'processing' | 'success' | 'failed' })
+        formatResults: formats.reduce(
+          (acc, format) => {
+            acc[format] = 'pending';
+            return acc;
+          },
+          {} as { [format: string]: 'pending' | 'processing' | 'success' | 'failed' }
+        ),
       };
     }
 
@@ -93,7 +109,7 @@ export class ProgressTracker extends EventEmitter {
       operation: 'Exporting',
       formats,
       formatProgress: this.state.formatProgress,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
     this.emit('progress', update);
@@ -106,7 +122,7 @@ export class ProgressTracker extends EventEmitter {
     const update: ProgressUpdate = {
       type: 'folder_change',
       folderName,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
     this.emit('progress', update);
@@ -119,7 +135,7 @@ export class ProgressTracker extends EventEmitter {
     const update: ProgressUpdate = {
       type: 'progress',
       operation,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
     this.emit('progress', update);
@@ -132,7 +148,7 @@ export class ProgressTracker extends EventEmitter {
 
     if (this.state.formatProgress) {
       this.state.formatProgress.formatResults[format] = 'processing';
-      
+
       // Update current format index
       const formats = Object.keys(this.state.formatProgress.formatResults);
       this.state.formatProgress.currentFormatIndex = formats.indexOf(format);
@@ -143,7 +159,7 @@ export class ProgressTracker extends EventEmitter {
       format,
       operation: this.state.currentOperation,
       formatProgress: this.state.formatProgress,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
     this.emit('progress', update);
@@ -154,8 +170,9 @@ export class ProgressTracker extends EventEmitter {
 
     if (this.state.formatProgress) {
       this.state.formatProgress.formatResults[format] = success ? 'success' : 'failed';
-      
-      if (success || !success) { // Count both success and failure as completion
+
+      if (success || !success) {
+        // Count both success and failure as completion
         this.state.formatProgress.completedFormats++;
       }
     }
@@ -165,21 +182,23 @@ export class ProgressTracker extends EventEmitter {
       format,
       formatProgress: this.state.formatProgress,
       error,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
     this.emit('progress', update);
 
     // Clear current format if this was the last one or if all formats are done
-    if (this.state.formatProgress && 
-        this.state.formatProgress.completedFormats >= this.state.formatProgress.totalFormats) {
+    if (
+      this.state.formatProgress &&
+      this.state.formatProgress.completedFormats >= this.state.formatProgress.totalFormats
+    ) {
       this.state.currentFormat = undefined;
     }
   }
 
   public completeDocument(success: boolean, fileSize?: number, error?: Error): void {
     this.state.processedDocuments++;
-    
+
     if (success) {
       this.state.successfulExports++;
       if (fileSize) {
@@ -192,7 +211,7 @@ export class ProgressTracker extends EventEmitter {
     this.updateProcessingRate();
     this.updateExportSpeed();
     this.updateEstimatedTimeRemaining();
-    
+
     // Clear document-specific state
     this.state.currentDocument = undefined;
     this.state.currentOperation = undefined;
@@ -205,7 +224,7 @@ export class ProgressTracker extends EventEmitter {
       type: success ? 'complete' : 'error',
       error,
       fileSize,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
     this.emit('progress', update);
@@ -254,7 +273,7 @@ export class ProgressTracker extends EventEmitter {
   private updateProcessingRate(): void {
     const now = new Date();
     const elapsedMinutes = (now.getTime() - this.startTime.getTime()) / (1000 * 60);
-    
+
     if (elapsedMinutes > 0 && this.state.processedDocuments > 0) {
       this.state.processingRate = this.state.processedDocuments / elapsedMinutes;
     }
@@ -263,7 +282,7 @@ export class ProgressTracker extends EventEmitter {
   private updateExportSpeed(): void {
     const now = new Date();
     const elapsedSeconds = (now.getTime() - this.startTime.getTime()) / 1000;
-    
+
     if (elapsedSeconds > 0 && this.state.totalBytesProcessed) {
       this.state.exportSpeed = this.state.totalBytesProcessed / elapsedSeconds;
     }
@@ -271,7 +290,7 @@ export class ProgressTracker extends EventEmitter {
 
   private updateEstimatedTimeRemaining(): void {
     if (!this.state.processingRate || this.state.processingRate === 0) return;
-    
+
     const remainingDocuments = this.state.totalDocuments - this.state.processedDocuments;
     if (remainingDocuments <= 0) {
       this.state.estimatedTimeRemaining = 0;
@@ -320,11 +339,11 @@ export class ProgressTracker extends EventEmitter {
 
     let summary = `Progress: ${this.state.processedDocuments}/${this.state.totalDocuments} (${percentage}%)`;
     summary += `\nElapsed: ${elapsed}`;
-    
+
     if (eta && this.state.processedDocuments < this.state.totalDocuments) {
       summary += `\nETA: ${eta}`;
     }
-    
+
     if (rate) {
       summary += `\nRate: ${rate} docs/min`;
     }
@@ -352,23 +371,23 @@ export class ProgressTracker extends EventEmitter {
     if (this.state.formatProgress) {
       const formatProgress = this.state.formatProgress;
       summary += `\nFormats: ${formatProgress.completedFormats}/${formatProgress.totalFormats}`;
-      
+
       if (this.state.currentFormat) {
         summary += ` | Current: ${this.state.currentFormat.toUpperCase()}`;
       }
-      
+
       // Show format status summary
       const formatStatuses = Object.entries(formatProgress.formatResults);
       const successCount = formatStatuses.filter(([, status]) => status === 'success').length;
       const failedCount = formatStatuses.filter(([, status]) => status === 'failed').length;
       const processingCount = formatStatuses.filter(([, status]) => status === 'processing').length;
-      
+
       if (successCount > 0 || failedCount > 0 || processingCount > 0) {
         const statusParts = [];
         if (successCount > 0) statusParts.push(`${successCount} ✓`);
         if (failedCount > 0) statusParts.push(`${failedCount} ✗`);
         if (processingCount > 0) statusParts.push(`${processingCount} ⏳`);
-        
+
         if (statusParts.length > 0) {
           summary += ` (${statusParts.join(', ')})`;
         }

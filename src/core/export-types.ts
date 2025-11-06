@@ -89,7 +89,7 @@ export interface FormatSummary {
   localPath: string;
 }
 
-export type ExportStatus = 
+export type ExportStatus =
   | 'initializing'
   | 'discovering'
   | 'exporting'

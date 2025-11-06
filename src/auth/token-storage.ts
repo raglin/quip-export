@@ -36,7 +36,7 @@ export class TokenStorage implements ITokenStorage {
   async storeToken(service: string, token: StoredToken): Promise<void> {
     const tokenData = JSON.stringify({
       ...token,
-      expiresAt: token.expiresAt.toISOString()
+      expiresAt: token.expiresAt.toISOString(),
     });
 
     try {
@@ -105,19 +105,19 @@ export class TokenStorage implements ITokenStorage {
    */
   private async storeTokenToFile(service: string, tokenData: string): Promise<void> {
     await fs.mkdir(this.fallbackDir, { recursive: true });
-    
+
     const key = Buffer.from(this.getEncryptionKey(), 'hex').subarray(0, 32);
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
-    
+
     let encrypted = cipher.update(tokenData, 'utf8', 'hex');
     encrypted += cipher.final('hex');
-    
+
     const encryptedData = {
       iv: iv.toString('hex'),
-      data: encrypted
+      data: encrypted,
     };
-    
+
     const filePath = path.join(this.fallbackDir, `${service}.token`);
     await fs.writeFile(filePath, JSON.stringify(encryptedData), { mode: 0o600 });
   }
@@ -127,18 +127,18 @@ export class TokenStorage implements ITokenStorage {
    */
   private async getTokenFromFile(service: string): Promise<string | null> {
     const filePath = path.join(this.fallbackDir, `${service}.token`);
-    
+
     try {
       const fileContent = await fs.readFile(filePath, 'utf8');
       const encryptedData = JSON.parse(fileContent);
-      
+
       const key = Buffer.from(this.getEncryptionKey(), 'hex').subarray(0, 32);
       const iv = Buffer.from(encryptedData.iv, 'hex');
       const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-      
+
       let decrypted = decipher.update(encryptedData.data, 'hex', 'utf8');
       decrypted += decipher.final('utf8');
-      
+
       return decrypted;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
@@ -177,7 +177,7 @@ export class TokenStorage implements ITokenStorage {
     const parsed = JSON.parse(tokenData);
     return {
       ...parsed,
-      expiresAt: new Date(parsed.expiresAt)
+      expiresAt: new Date(parsed.expiresAt),
     };
   }
 }

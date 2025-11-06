@@ -64,7 +64,6 @@ export const FILE_EXTENSIONS = {
   SPREADSHEET: '.xlsx',
   PRESENTATION: '.pptx',
   HTML: '.html',
-
 };
 
 export const SUPPORTED_EXPORT_FORMATS = Object.freeze(['native', 'html', 'markdown'] as const);

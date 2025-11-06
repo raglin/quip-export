@@ -7,8 +7,6 @@ export interface QuipAuthConfig {
   personalAccessToken: string;
 }
 
-
-
 export interface AuthenticationResult {
   success: boolean;
   accessToken?: string;

@@ -28,23 +28,25 @@ export interface EnvironmentConfigValidationResult extends ConfigValidationResul
 export function loadEnvironmentConfig(): EnvironmentConfig {
   const authConfig = loadConfigFromEnv();
   const exportConfig = ExportConfigManager.createFromEnv();
-  
+
   return {
     auth: {
-      quip: authConfig.quip
+      quip: authConfig.quip,
     },
     export: exportConfig,
     logging: {
       level: process.env.LOG_LEVEL || 'INFO',
-      filePath: process.env.LOG_FILE_PATH || './logs'
-    }
+      filePath: process.env.LOG_FILE_PATH || './logs',
+    },
   };
 }
 
 /**
  * Validate complete environment configuration
  */
-export async function validateEnvironmentConfig(config?: EnvironmentConfig): Promise<EnvironmentConfigValidationResult> {
+export async function validateEnvironmentConfig(
+  config?: EnvironmentConfig
+): Promise<EnvironmentConfigValidationResult> {
   const envConfig = config || loadEnvironmentConfig();
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -77,13 +79,15 @@ export async function validateEnvironmentConfig(config?: EnvironmentConfig): Pro
   // Batch size validation removed - handled by batch processor
 
   if (envConfig.export.rateLimitDelay < 1000) {
-    warnings.push('Rate limit delay below 1000ms may cause API throttling. Consider using 1200ms or higher.');
+    warnings.push(
+      'Rate limit delay below 1000ms may cause API throttling. Consider using 1200ms or higher.'
+    );
   }
 
   return {
     isValid: errors.length === 0,
     errors,
-    warnings
+    warnings,
   };
 }
 
@@ -92,18 +96,18 @@ export async function validateEnvironmentConfig(config?: EnvironmentConfig): Pro
  */
 export function getConfigurationSummary(config?: EnvironmentConfig): Record<string, unknown> {
   const envConfig = config || loadEnvironmentConfig();
-  
+
   return {
-    'Authentication': {
+    Authentication: {
       'Quip Method': 'Personal Access Token',
       'Quip Domain': envConfig.auth.quip?.domain || 'Not configured',
-      'Token Available': envConfig.auth.quip?.personalAccessToken ? 'Yes' : 'No'
+      'Token Available': envConfig.auth.quip?.personalAccessToken ? 'Yes' : 'No',
     },
     'Export Settings': ExportConfigManager.getConfigSummary(envConfig.export),
-    'Logging': {
-      'Level': envConfig.logging.level,
-      'File Path': envConfig.logging.filePath
-    }
+    Logging: {
+      Level: envConfig.logging.level,
+      'File Path': envConfig.logging.filePath,
+    },
   };
 }
 
@@ -116,19 +120,19 @@ export function createEnvironmentConfig(overrides: {
   logging?: Partial<{ level: string; filePath: string }>;
 }): EnvironmentConfig {
   const baseConfig = loadEnvironmentConfig();
-  
+
   return {
     auth: {
-      quip: overrides.auth?.quip !== undefined ? overrides.auth.quip : baseConfig.auth.quip
+      quip: overrides.auth?.quip !== undefined ? overrides.auth.quip : baseConfig.auth.quip,
     },
     export: {
       ...baseConfig.export,
-      ...overrides.export
+      ...overrides.export,
     },
     logging: {
       ...baseConfig.logging,
-      ...overrides.logging
-    }
+      ...overrides.logging,
+    },
   };
 }
 
@@ -137,7 +141,7 @@ export function createEnvironmentConfig(overrides: {
  */
 export function isConfigurationReady(config?: EnvironmentConfig): boolean {
   const envConfig = config || loadEnvironmentConfig();
-  
+
   // Must have Quip authentication
   if (!envConfig.auth.quip) {
     return false;
@@ -159,7 +163,9 @@ export function getMissingRequirements(config?: EnvironmentConfig): string[] {
   const missing: string[] = [];
 
   if (!envConfig.auth.quip) {
-    missing.push('Quip authentication (QUIP_PERSONAL_ACCESS_TOKEN or QUIP_CLIENT_ID/QUIP_CLIENT_SECRET)');
+    missing.push(
+      'Quip authentication (QUIP_PERSONAL_ACCESS_TOKEN or QUIP_CLIENT_ID/QUIP_CLIENT_SECRET)'
+    );
   }
 
   if (!envConfig.export.outputDirectory || envConfig.export.outputDirectory.trim().length === 0) {

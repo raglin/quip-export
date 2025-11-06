@@ -54,7 +54,7 @@ export class BatchProcessor<T extends BatchItem> {
     this.options = {
       exponentialBackoff: true,
       memoryThreshold: 500, // 500MB default
-      ...options
+      ...options,
     };
   }
 
@@ -76,10 +76,10 @@ export class BatchProcessor<T extends BatchItem> {
 
     try {
       this.logger.info(`Starting batch processing of ${items.length} items`);
-      
+
       // Sort items by priority
       const sortedItems = [...items].sort((a, b) => a.priority - b.priority);
-      
+
       // Create batches
       const batches = this.createBatches(sortedItems);
       this.logger.debug(`Created ${batches.length} batches of size ${this.options.batchSize}`);
@@ -95,9 +95,9 @@ export class BatchProcessor<T extends BatchItem> {
         this.currentBatch = batch;
 
         this.logger.debug(`Processing batch ${batchIndex + 1}/${batches.length}`);
-        
+
         await this.processBatch(batch, processor);
-        
+
         // Callback for batch completion
         if (this.options.onBatchComplete) {
           this.options.onBatchComplete(batch, batchIndex, batches.length);
@@ -114,10 +114,11 @@ export class BatchProcessor<T extends BatchItem> {
 
       const duration = Date.now() - this.startTime;
       const result = this.generateResult(items, duration);
-      
-      this.logger.info(`Batch processing completed: ${result.successfulItems}/${result.totalItems} successful`);
-      return result;
 
+      this.logger.info(
+        `Batch processing completed: ${result.successfulItems}/${result.totalItems} successful`
+      );
+      return result;
     } finally {
       this.isProcessing = false;
       this.shouldCancel = false;
@@ -162,21 +163,18 @@ export class BatchProcessor<T extends BatchItem> {
       processedCount: this.processedCount,
       currentBatch: [...this.currentBatch],
       elapsedTime,
-      averageProcessingTime
+      averageProcessingTime,
     };
   }
 
   /**
    * Process a single batch
    */
-  private async processBatch<R>(
-    batch: T[],
-    processor: (item: T) => Promise<R>
-  ): Promise<void> {
+  private async processBatch<R>(batch: T[], processor: (item: T) => Promise<R>): Promise<void> {
     // Create processing promises with concurrency control
     const semaphore = new Semaphore(this.options.concurrency);
-    
-    const promises = batch.map(item => 
+
+    const promises = batch.map((item) =>
       semaphore.acquire().then(async (release) => {
         try {
           await this.processItem(item, processor);
@@ -192,10 +190,7 @@ export class BatchProcessor<T extends BatchItem> {
   /**
    * Process a single item with retry logic
    */
-  private async processItem<R>(
-    item: T,
-    processor: (item: T) => Promise<R>
-  ): Promise<void> {
+  private async processItem<R>(item: T, processor: (item: T) => Promise<R>): Promise<void> {
     if (this.shouldCancel) {
       item.status = 'skipped';
       return;
@@ -207,7 +202,7 @@ export class BatchProcessor<T extends BatchItem> {
     for (let attempt = 0; attempt <= this.options.maxRetries; attempt++) {
       try {
         await processor(item);
-        
+
         item.status = 'completed';
         this.processedCount++;
 
@@ -222,7 +217,6 @@ export class BatchProcessor<T extends BatchItem> {
         }
 
         return;
-
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
         item.retryCount = attempt;
@@ -255,7 +249,9 @@ export class BatchProcessor<T extends BatchItem> {
       this.options.onItemComplete(item, false);
     }
 
-    this.logger.warn(`Item ${item.id} failed after ${this.options.maxRetries + 1} attempts: ${item.error}`);
+    this.logger.warn(
+      `Item ${item.id} failed after ${this.options.maxRetries + 1} attempts: ${item.error}`
+    );
   }
 
   /**
@@ -263,11 +259,11 @@ export class BatchProcessor<T extends BatchItem> {
    */
   private createBatches(items: T[]): T[][] {
     const batches: T[][] = [];
-    
+
     for (let i = 0; i < items.length; i += this.options.batchSize) {
       batches.push(items.slice(i, i + this.options.batchSize));
     }
-    
+
     return batches;
   }
 
@@ -290,15 +286,17 @@ export class BatchProcessor<T extends BatchItem> {
     const threshold = this.options.memoryThreshold || 500;
 
     if (usedMB > threshold) {
-      this.logger.warn(`Memory usage high (${Math.round(usedMB)}MB), triggering garbage collection`);
-      
+      this.logger.warn(
+        `Memory usage high (${Math.round(usedMB)}MB), triggering garbage collection`
+      );
+
       if (global.gc) {
         global.gc();
       }
-      
+
       // Brief pause to allow memory cleanup
       await this.delay(1000);
-      
+
       const newUsage = process.memoryUsage();
       const newUsedMB = newUsage.heapUsed / 1024 / 1024;
       this.logger.debug(`Memory usage after GC: ${Math.round(newUsedMB)}MB`);
@@ -317,9 +315,9 @@ export class BatchProcessor<T extends BatchItem> {
    */
   private generateResult(items: T[], duration: number): BatchProcessorResult<T> {
     const totalItems = items.length;
-    const successfulItems = items.filter(item => item.status === 'completed').length;
-    const failedItems = items.filter(item => item.status === 'failed').length;
-    const skippedItems = items.filter(item => item.status === 'skipped').length;
+    const successfulItems = items.filter((item) => item.status === 'completed').length;
+    const failedItems = items.filter((item) => item.status === 'failed').length;
+    const skippedItems = items.filter((item) => item.status === 'skipped').length;
     const processedItems = successfulItems + failedItems + skippedItems;
     const averageProcessingTime = processedItems > 0 ? duration / processedItems : 0;
 
@@ -331,7 +329,7 @@ export class BatchProcessor<T extends BatchItem> {
       skippedItems,
       items,
       duration,
-      averageProcessingTime
+      averageProcessingTime,
     };
   }
 
@@ -339,7 +337,7 @@ export class BatchProcessor<T extends BatchItem> {
    * Utility method for delays
    */
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 
@@ -413,12 +411,12 @@ export class RateLimiter {
    */
   private tryAcquire(): boolean {
     this.refillTokens();
-    
+
     if (this.tokens > 0) {
       this.tokens--;
       return true;
     }
-    
+
     return false;
   }
 
@@ -429,7 +427,7 @@ export class RateLimiter {
     const now = Date.now();
     const elapsed = (now - this.lastRefill) / 1000;
     const tokensToAdd = Math.floor(elapsed * this.requestsPerSecond);
-    
+
     if (tokensToAdd > 0) {
       this.tokens = Math.min(this.burstSize, this.tokens + tokensToAdd);
       this.lastRefill = now;
@@ -441,16 +439,16 @@ export class RateLimiter {
    */
   private scheduleRefill(): void {
     const timeToNextToken = (1 / this.requestsPerSecond) * 1000;
-    
+
     setTimeout(() => {
       this.refillTokens();
-      
+
       while (this.queue.length > 0 && this.tokens > 0) {
         this.tokens--;
         const resolve = this.queue.shift()!;
         resolve();
       }
-      
+
       if (this.queue.length > 0) {
         this.scheduleRefill();
       }
@@ -466,11 +464,11 @@ export class RateLimiter {
     requestsPerSecond: number;
   } {
     this.refillTokens();
-    
+
     return {
       tokens: this.tokens,
       queueLength: this.queue.length,
-      requestsPerSecond: this.requestsPerSecond
+      requestsPerSecond: this.requestsPerSecond,
     };
   }
 }

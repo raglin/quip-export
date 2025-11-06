@@ -17,7 +17,7 @@ export interface AuditEvent {
   duration?: number;
 }
 
-export type AuditEventType = 
+export type AuditEventType =
   | 'authentication'
   | 'document_discovery'
   | 'document_export'
@@ -47,7 +47,7 @@ export class AuditLogger {
       enableFileLogging: false,
       enableConsole: config.enableConsoleOutput,
       sessionId: config.sessionId,
-      component: 'AUDIT'
+      component: 'AUDIT',
     });
 
     if (config.enableFileOutput) {
@@ -79,7 +79,7 @@ export class AuditLogger {
       status,
       details: details?.metadata,
       error: details?.error?.message,
-      duration: details?.duration
+      duration: details?.duration,
     };
 
     this.writeAuditEvent(event);
@@ -93,7 +93,7 @@ export class AuditLogger {
   ): void {
     this.logEvent('authentication', `${service}_auth`, status, {
       source: service,
-      error
+      error,
     });
   }
 
@@ -110,10 +110,10 @@ export class AuditLogger {
       source: 'quip',
       metadata: {
         documentsFound: details?.documentsFound,
-        foldersFound: details?.foldersFound
+        foldersFound: details?.foldersFound,
       },
       error: details?.error,
-      duration: details?.duration
+      duration: details?.duration,
     });
   }
 
@@ -133,10 +133,10 @@ export class AuditLogger {
       target: documentTitle,
       metadata: {
         format: details?.format,
-        fileSize: details?.fileSize
+        fileSize: details?.fileSize,
       },
       error: details?.error,
-      duration: details?.duration
+      duration: details?.duration,
     });
   }
 
@@ -154,10 +154,10 @@ export class AuditLogger {
       source: documentTitle,
       target: `local:${localPath}`,
       metadata: {
-        fileSize: details?.fileSize
+        fileSize: details?.fileSize,
       },
       error: details?.error,
-      duration: details?.duration
+      duration: details?.duration,
     });
   }
 
@@ -168,7 +168,7 @@ export class AuditLogger {
   ): void {
     this.logEvent('folder_creation', 'create_folder', status, {
       target: `local:${folderPath}`,
-      error
+      error,
     });
   }
 
@@ -188,10 +188,10 @@ export class AuditLogger {
         totalDocuments: details?.totalDocuments,
         successfulExports: details?.successfulExports,
         failedExports: details?.failedExports,
-        totalDataExported: details?.totalDataExported
+        totalDataExported: details?.totalDataExported,
       },
       error: details?.error,
-      duration: details?.duration
+      duration: details?.duration,
     });
   }
 
@@ -210,10 +210,10 @@ export class AuditLogger {
       source: service,
       metadata: {
         statusCode: details?.statusCode,
-        responseTime: details?.responseTime
+        responseTime: details?.responseTime,
       },
       error: details?.error,
-      duration: details?.responseTime
+      duration: details?.responseTime,
     });
   }
 
@@ -231,21 +231,26 @@ export class AuditLogger {
 
     try {
       const content = fs.readFileSync(this.auditFilePath, 'utf-8');
-      const lines = content.trim().split('\n').filter(line => line.trim());
-      
-      let events: AuditEvent[] = lines.map(line => JSON.parse(line));
-      
+      const lines = content
+        .trim()
+        .split('\n')
+        .filter((line) => line.trim());
+
+      let events: AuditEvent[] = lines.map((line) => JSON.parse(line));
+
       if (eventType) {
-        events = events.filter(event => event.eventType === eventType);
+        events = events.filter((event) => event.eventType === eventType);
       }
-      
+
       if (status) {
-        events = events.filter(event => event.status === status);
+        events = events.filter((event) => event.status === status);
       }
-      
+
       return events;
     } catch (error) {
-      this.logger.error('Failed to read audit events', { error: error instanceof Error ? error.message : String(error) });
+      this.logger.error('Failed to read audit events', {
+        error: error instanceof Error ? error.message : String(error),
+      });
       return [];
     }
   }
@@ -261,11 +266,13 @@ export class AuditLogger {
         this.config.auditDirectory,
         `audit-${this.config.sessionId}-${timestamp}.jsonl`
       );
-      
+
       // Initialize file with session start event
       this.logExportSession('started');
     } catch (error) {
-      this.logger.error('Failed to initialize audit file', { error: error instanceof Error ? error.message : String(error) });
+      this.logger.error('Failed to initialize audit file', {
+        error: error instanceof Error ? error.message : String(error),
+      });
       this.config.enableFileOutput = false;
     }
   }
@@ -279,7 +286,9 @@ export class AuditLogger {
       const eventLine = JSON.stringify(event) + '\n';
       fs.appendFileSync(this.auditFilePath, eventLine);
     } catch (error) {
-      this.logger.error('Failed to write audit event', { error: error instanceof Error ? error.message : String(error) });
+      this.logger.error('Failed to write audit event', {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -294,7 +303,7 @@ export class AuditLogger {
       source: event.source,
       target: event.target,
       duration: event.duration,
-      error: event.error
+      error: event.error,
     };
 
     switch (event.status) {

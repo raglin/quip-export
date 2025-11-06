@@ -3,17 +3,17 @@
 import { Logger } from '../types';
 
 export enum CircuitState {
-  CLOSED = 'closed',     // Normal operation
-  OPEN = 'open',         // Failing fast
-  HALF_OPEN = 'half_open' // Testing if service recovered
+  CLOSED = 'closed', // Normal operation
+  OPEN = 'open', // Failing fast
+  HALF_OPEN = 'half_open', // Testing if service recovered
 }
 
 export interface CircuitBreakerConfig {
-  failureThreshold: number;      // Number of failures before opening
-  recoveryTimeout: number;       // Time to wait before trying half-open (ms)
-  successThreshold: number;      // Successes needed to close from half-open
-  monitoringWindow: number;      // Time window for failure counting (ms)
-  minimumRequests: number;       // Minimum requests before considering failure rate
+  failureThreshold: number; // Number of failures before opening
+  recoveryTimeout: number; // Time to wait before trying half-open (ms)
+  successThreshold: number; // Successes needed to close from half-open
+  monitoringWindow: number; // Time window for failure counting (ms)
+  minimumRequests: number; // Minimum requests before considering failure rate
 }
 
 export interface CircuitBreakerStats {
@@ -50,7 +50,7 @@ export class CircuitBreaker {
       successThreshold: 3,
       monitoringWindow: 300000, // 5 minutes
       minimumRequests: 10,
-      ...config
+      ...config,
     };
   }
 
@@ -62,7 +62,9 @@ export class CircuitBreaker {
       if (this.shouldAttemptReset()) {
         this.transitionToHalfOpen();
       } else {
-        throw new Error(`Circuit breaker is OPEN for ${operationName}. Service is currently unavailable.`);
+        throw new Error(
+          `Circuit breaker is OPEN for ${operationName}. Service is currently unavailable.`
+        );
       }
     }
 
@@ -91,11 +93,12 @@ export class CircuitBreaker {
    */
   getStats(): CircuitBreakerStats {
     this.cleanupHistory();
-    
+
     const recentRequests = this.getRecentRequests();
-    const failureRate = recentRequests.length > 0 
-      ? recentRequests.filter(r => !r.success).length / recentRequests.length 
-      : 0;
+    const failureRate =
+      recentRequests.length > 0
+        ? recentRequests.filter((r) => !r.success).length / recentRequests.length
+        : 0;
 
     return {
       state: this.state,
@@ -105,7 +108,7 @@ export class CircuitBreaker {
       lastFailureTime: this.lastFailureTime,
       lastSuccessTime: this.lastSuccessTime,
       stateChangedAt: this.stateChangedAt,
-      failureRate
+      failureRate,
     };
   }
 
@@ -136,7 +139,7 @@ export class CircuitBreaker {
     this.successCount++;
     this.totalRequests++;
     this.lastSuccessTime = new Date();
-    
+
     this.addToHistory(true);
 
     if (this.state === CircuitState.HALF_OPEN) {
@@ -153,7 +156,7 @@ export class CircuitBreaker {
     this.failureCount++;
     this.totalRequests++;
     this.lastFailureTime = new Date();
-    
+
     this.addToHistory(false);
 
     if (this.state === CircuitState.HALF_OPEN) {
@@ -170,13 +173,13 @@ export class CircuitBreaker {
    */
   private shouldOpen(): boolean {
     const recentRequests = this.getRecentRequests();
-    
+
     // Need minimum requests to consider opening
     if (recentRequests.length < this.config.minimumRequests) {
       return false;
     }
 
-    const recentFailures = recentRequests.filter(r => !r.success).length;
+    const recentFailures = recentRequests.filter((r) => !r.success).length;
     return recentFailures >= this.config.failureThreshold;
   }
 
@@ -228,7 +231,7 @@ export class CircuitBreaker {
   private addToHistory(success: boolean): void {
     this.requestHistory.push({
       timestamp: new Date(),
-      success
+      success,
     });
 
     // Keep history size manageable
@@ -242,7 +245,7 @@ export class CircuitBreaker {
    */
   private getRecentRequests(): Array<{ timestamp: Date; success: boolean }> {
     const cutoff = new Date(Date.now() - this.config.monitoringWindow);
-    return this.requestHistory.filter(r => r.timestamp >= cutoff);
+    return this.requestHistory.filter((r) => r.timestamp >= cutoff);
   }
 
   /**
@@ -250,8 +253,8 @@ export class CircuitBreaker {
    */
   private cleanupHistory(): void {
     const cutoff = new Date(Date.now() - this.config.monitoringWindow);
-    const validEntries = this.requestHistory.filter(r => r.timestamp >= cutoff);
-    
+    const validEntries = this.requestHistory.filter((r) => r.timestamp >= cutoff);
+
     if (validEntries.length !== this.requestHistory.length) {
       this.requestHistory.length = 0;
       this.requestHistory.push(...validEntries);
@@ -275,7 +278,7 @@ export class CircuitBreakerManager {
       successThreshold: 3,
       monitoringWindow: 300000,
       minimumRequests: 10,
-      ...defaultConfig
+      ...defaultConfig,
     };
   }
 
@@ -297,8 +300,8 @@ export class CircuitBreakerManager {
    * Execute operation with circuit breaker protection
    */
   async execute<T>(
-    serviceName: string, 
-    operation: () => Promise<T>, 
+    serviceName: string,
+    operation: () => Promise<T>,
     config?: Partial<CircuitBreakerConfig>
   ): Promise<T> {
     const breaker = this.getBreaker(serviceName, config);
@@ -310,11 +313,11 @@ export class CircuitBreakerManager {
    */
   getAllStats(): Record<string, CircuitBreakerStats> {
     const stats: Record<string, CircuitBreakerStats> = {};
-    
+
     for (const [serviceName, breaker] of this.breakers) {
       stats[serviceName] = breaker.getStats();
     }
-    
+
     return stats;
   }
 
@@ -333,13 +336,13 @@ export class CircuitBreakerManager {
    */
   getOpenCircuits(): string[] {
     const openCircuits: string[] = [];
-    
+
     for (const [serviceName, breaker] of this.breakers) {
       if (breaker.getStats().state === CircuitState.OPEN) {
         openCircuits.push(serviceName);
       }
     }
-    
+
     return openCircuits;
   }
 

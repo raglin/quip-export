@@ -1,6 +1,11 @@
 // Test constants and configuration defaults
 
-import { DEFAULT_CONFIG, API_ENDPOINTS, RATE_LIMITS, SUPPORTED_EXPORT_FORMATS } from '../core/constants';
+import {
+  DEFAULT_CONFIG,
+  API_ENDPOINTS,
+  RATE_LIMITS,
+  SUPPORTED_EXPORT_FORMATS,
+} from '../core/constants';
 
 describe('Constants', () => {
   describe('DEFAULT_CONFIG', () => {
@@ -11,7 +16,6 @@ describe('Constants', () => {
       expect(['native', 'html', 'markdown']).toContain(DEFAULT_CONFIG.OUTPUT_FORMAT);
       expect(typeof DEFAULT_CONFIG.PRESERVE_FOLDER_STRUCTURE).toBe('boolean');
       expect(typeof DEFAULT_CONFIG.INCLUDE_SHARED_DOCUMENTS).toBe('boolean');
-
     });
 
     it('should have reasonable limits', () => {
@@ -37,12 +41,16 @@ describe('Constants', () => {
   describe('RATE_LIMITS', () => {
     it('should have reasonable Quip rate limits', () => {
       expect(RATE_LIMITS.QUIP.REQUESTS_PER_MINUTE).toBeGreaterThan(0);
-      expect(RATE_LIMITS.QUIP.REQUESTS_PER_HOUR).toBeGreaterThan(RATE_LIMITS.QUIP.REQUESTS_PER_MINUTE);
+      expect(RATE_LIMITS.QUIP.REQUESTS_PER_HOUR).toBeGreaterThan(
+        RATE_LIMITS.QUIP.REQUESTS_PER_MINUTE
+      );
     });
 
     it('should have reasonable Microsoft rate limits', () => {
       expect(RATE_LIMITS.MICROSOFT.DEFAULT_DELAY).toBeGreaterThan(0);
-      expect(RATE_LIMITS.MICROSOFT.MAX_RETRY_DELAY).toBeGreaterThan(RATE_LIMITS.MICROSOFT.DEFAULT_DELAY);
+      expect(RATE_LIMITS.MICROSOFT.MAX_RETRY_DELAY).toBeGreaterThan(
+        RATE_LIMITS.MICROSOFT.DEFAULT_DELAY
+      );
     });
   });
 

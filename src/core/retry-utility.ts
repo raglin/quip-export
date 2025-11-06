@@ -22,16 +22,13 @@ export class RetryUtility {
     baseDelay: 1000,
     maxDelay: 30000,
     backoffMultiplier: 2,
-    jitter: true
+    jitter: true,
   };
 
   /**
    * Execute a function with retry logic
    */
-  static async withRetry<T>(
-    fn: () => Promise<T>,
-    options: Partial<RetryOptions> = {}
-  ): Promise<T> {
+  static async withRetry<T>(fn: () => Promise<T>, options: Partial<RetryOptions> = {}): Promise<T> {
     const opts = { ...this.DEFAULT_OPTIONS, ...options };
     let lastError: Error;
 
@@ -86,7 +83,7 @@ export class RetryUtility {
    * Utility method for delays
    */
   private static delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -108,7 +105,7 @@ export class RetryUtility {
   ): Promise<T> {
     return this.withRetry(fn, {
       maxRetries,
-      retryCondition: condition
+      retryCondition: condition,
     });
   }
 
@@ -180,10 +177,11 @@ export class CircuitBreaker {
    */
   private onSuccess(): void {
     this.failureCount = 0;
-    
+
     if (this.state === 'HALF_OPEN') {
       this.successCount++;
-      if (this.successCount >= 3) { // Require 3 successes to close
+      if (this.successCount >= 3) {
+        // Require 3 successes to close
         this.state = 'CLOSED';
       }
     }
@@ -221,7 +219,7 @@ export class CircuitBreaker {
       state: this.state,
       failureCount: this.failureCount,
       successCount: this.successCount,
-      lastFailureTime: this.lastFailureTime
+      lastFailureTime: this.lastFailureTime,
     };
   }
 
@@ -304,7 +302,7 @@ export class Bulkhead {
     return {
       activeRequests: this.activeRequests,
       queuedRequests: this.queue.length,
-      maxConcurrency: this.maxConcurrency
+      maxConcurrency: this.maxConcurrency,
     };
   }
 }

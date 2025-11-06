@@ -22,7 +22,7 @@ export class MemoryManager {
       used: usedMemory,
       total: totalMemory,
       free: freeMemory,
-      percentage: Math.round((usedMemory / totalMemory) * 100)
+      percentage: Math.round((usedMemory / totalMemory) * 100),
     };
   }
 
@@ -40,7 +40,7 @@ export class MemoryManager {
       used: this.formatBytes(usage.used),
       total: this.formatBytes(usage.total),
       free: this.formatBytes(usage.free),
-      percentage: usage.percentage
+      percentage: usage.percentage,
     };
   }
 
@@ -61,7 +61,7 @@ export class MemoryManager {
     memoryBufferMB: number = 500
   ): number {
     const usage = this.getMemoryUsage();
-    const availableMemoryMB = (usage.free - (memoryBufferMB * this.MB)) / this.MB;
+    const availableMemoryMB = (usage.free - memoryBufferMB * this.MB) / this.MB;
 
     if (availableMemoryMB <= 0) {
       return 1; // Minimum batch size
@@ -91,7 +91,7 @@ export class MemoryManager {
       }
 
       // Wait a bit for GC to complete
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
 
@@ -101,7 +101,8 @@ export class MemoryManager {
   static createBuffer(sizeMB: number): Buffer {
     const sizeBytes = sizeMB * this.MB;
 
-    if (!this.hassufficientMemory(sizeMB + 100)) { // Add 100MB buffer
+    if (!this.hassufficientMemory(sizeMB + 100)) {
+      // Add 100MB buffer
       throw new Error(`Insufficient memory to create ${sizeMB}MB buffer`);
     }
 
@@ -166,14 +167,13 @@ export class MemoryManager {
     }
 
     const recommendedBatchSize = this.calculateMemoryBasedBatchSize();
-    const recommendedConcurrency = memoryStatus === 'low' ? 2 :
-      memoryStatus === 'medium' ? 3 : 5;
+    const recommendedConcurrency = memoryStatus === 'low' ? 2 : memoryStatus === 'medium' ? 3 : 5;
 
     return {
       recommendedBatchSize,
       recommendedConcurrency,
       memoryStatus,
-      warnings
+      warnings,
     };
   }
 
@@ -189,9 +189,7 @@ export class MemoryManager {
   /**
    * Create a memory-aware stream processor
    */
-  static createMemoryAwareProcessor<T>(
-    maxMemoryMB: number = 100
-  ): {
+  static createMemoryAwareProcessor<T>(maxMemoryMB: number = 100): {
     add: (item: T) => boolean;
     process: (processor: (items: T[]) => Promise<void>) => Promise<void>;
     clear: () => void;
@@ -222,7 +220,7 @@ export class MemoryManager {
 
       size: (): number => {
         return items.length;
-      }
+      },
     };
   }
 }

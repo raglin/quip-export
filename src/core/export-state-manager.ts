@@ -1,15 +1,15 @@
 // Export state management for tracking export sessions and progress
 
 import { Logger } from '../types';
-import { 
-  ExportState, 
-  ExportConfig, 
-  ExportSession, 
-  ExportError, 
+import {
+  ExportState,
+  ExportConfig,
+  ExportSession,
+  ExportError,
   ExportProgress,
   ExportSummary,
   ExportStatus,
-  FolderSummary
+  FolderSummary,
 } from './export-types';
 
 /**
@@ -30,7 +30,7 @@ export class ExportStateManager {
    */
   createSession(config: ExportConfig): ExportSession {
     const sessionId = this.generateSessionId();
-    
+
     const initialState: ExportState = {
       sessionId,
       totalDocuments: 0,
@@ -41,7 +41,7 @@ export class ExportStateManager {
       startTime: new Date(),
       lastUpdateTime: new Date(),
       outputDirectory: config.outputDirectory,
-      status: 'initializing'
+      status: 'initializing',
     };
 
     const session: ExportSession = {
@@ -49,12 +49,12 @@ export class ExportStateManager {
       config,
       state: initialState,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     this.currentSession = session;
     this.logger.info(`Created export session: ${sessionId}`);
-    
+
     return session;
   }
 
@@ -75,9 +75,9 @@ export class ExportStateManager {
 
     this.currentSession.config = {
       ...this.currentSession.config,
-      ...config
+      ...config,
     };
-    
+
     this.currentSession.updatedAt = new Date();
     this.logger.debug('Updated export configuration');
   }
@@ -93,17 +93,19 @@ export class ExportStateManager {
     this.currentSession.state = {
       ...this.currentSession.state,
       ...stateUpdate,
-      lastUpdateTime: new Date()
+      lastUpdateTime: new Date(),
     };
-    
+
     this.currentSession.updatedAt = new Date();
 
     // Notify state change callbacks
-    this.stateChangeCallbacks.forEach(callback => {
+    this.stateChangeCallbacks.forEach((callback) => {
       try {
         callback(this.currentSession!.state);
       } catch (error) {
-        this.logger.warn(`State change callback error: ${error instanceof Error ? error.message : String(error)}`);
+        this.logger.warn(
+          `State change callback error: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
     });
 
@@ -134,7 +136,7 @@ export class ExportStateManager {
   initializeExport(totalDocuments: number): void {
     this.updateState({
       totalDocuments,
-      status: 'discovering'
+      status: 'discovering',
     });
   }
 
@@ -144,18 +146,23 @@ export class ExportStateManager {
   startExport(): void {
     this.updateState({
       status: 'exporting',
-      startTime: new Date()
+      startTime: new Date(),
     });
   }
 
   /**
    * Mark a document as being processed
    */
-  startDocumentExport(_documentId: string, documentTitle: string, folderPath: string, formats?: string[]): void {
+  startDocumentExport(
+    _documentId: string,
+    documentTitle: string,
+    folderPath: string,
+    formats?: string[]
+  ): void {
     this.updateState({
       currentDocument: documentTitle,
       currentFolder: folderPath,
-      currentFormats: formats
+      currentFormats: formats,
     });
   }
 
@@ -165,7 +172,7 @@ export class ExportStateManager {
   startFormatExport(_documentId: string, format: string): void {
     this.updateState({
       currentFormat: format,
-      currentOperation: `Exporting as ${format.toUpperCase()}`
+      currentOperation: `Exporting as ${format.toUpperCase()}`,
     });
   }
 
@@ -177,11 +184,11 @@ export class ExportStateManager {
     // For now, we'll just update the current operation
     if (success) {
       this.updateState({
-        currentOperation: `Completed ${format.toUpperCase()} export`
+        currentOperation: `Completed ${format.toUpperCase()} export`,
       });
     } else {
       this.updateState({
-        currentOperation: `Failed ${format.toUpperCase()} export: ${error?.message || 'Unknown error'}`
+        currentOperation: `Failed ${format.toUpperCase()} export: ${error?.message || 'Unknown error'}`,
       });
     }
   }
@@ -191,10 +198,10 @@ export class ExportStateManager {
    */
   completeDocumentExport(): void {
     const state = this.currentSession!.state;
-    
+
     this.updateState({
       processedDocuments: state.processedDocuments + 1,
-      successfulExports: state.successfulExports + 1
+      successfulExports: state.successfulExports + 1,
     });
   }
 
@@ -202,27 +209,27 @@ export class ExportStateManager {
    * Mark a document export as failed
    */
   failDocumentExport(
-    documentId: string, 
-    documentTitle: string, 
-    folderPath: string, 
+    documentId: string,
+    documentTitle: string,
+    folderPath: string,
     error: string,
     retryCount: number = 0
   ): void {
     const state = this.currentSession!.state;
-    
+
     const exportError: ExportError = {
       documentId,
       documentTitle,
       folderPath,
       error,
       timestamp: new Date(),
-      retryCount
+      retryCount,
     };
 
     this.updateState({
       processedDocuments: state.processedDocuments + 1,
       failedExports: state.failedExports + 1,
-      errors: [...state.errors, exportError]
+      errors: [...state.errors, exportError],
     });
   }
 
@@ -233,9 +240,9 @@ export class ExportStateManager {
     this.updateState({
       status: 'completed',
       currentDocument: undefined,
-      currentFolder: undefined
+      currentFolder: undefined,
     });
-    
+
     this.logger.info('Export completed successfully');
   }
 
@@ -244,9 +251,9 @@ export class ExportStateManager {
    */
   failExport(error: string): void {
     this.updateState({
-      status: 'failed'
+      status: 'failed',
     });
-    
+
     this.logger.error(`Export failed: ${error}`);
   }
 
@@ -255,9 +262,9 @@ export class ExportStateManager {
    */
   cancelExport(): void {
     this.updateState({
-      status: 'cancelled'
+      status: 'cancelled',
     });
-    
+
     this.logger.info('Export cancelled by user');
   }
 
@@ -270,9 +277,10 @@ export class ExportStateManager {
     }
 
     const state = this.currentSession.state;
-    const percentage = state.totalDocuments > 0 
-      ? Math.round((state.processedDocuments / state.totalDocuments) * 100)
-      : 0;
+    const percentage =
+      state.totalDocuments > 0
+        ? Math.round((state.processedDocuments / state.totalDocuments) * 100)
+        : 0;
 
     const progress: ExportProgress = {
       sessionId: state.sessionId,
@@ -280,7 +288,7 @@ export class ExportStateManager {
       total: state.totalDocuments,
       percentage,
       currentItem: state.currentDocument,
-      currentFolder: state.currentFolder
+      currentFolder: state.currentFolder,
     };
 
     // Calculate estimated time remaining and export speed
@@ -288,7 +296,7 @@ export class ExportStateManager {
       const elapsedTime = Date.now() - state.startTime.getTime();
       const documentsPerMs = state.processedDocuments / elapsedTime;
       const remainingDocuments = state.totalDocuments - state.processedDocuments;
-      
+
       progress.estimatedTimeRemaining = remainingDocuments / documentsPerMs;
       progress.exportSpeed = documentsPerMs * 60000; // documents per minute
     }
@@ -306,7 +314,7 @@ export class ExportStateManager {
 
     const state = this.currentSession.state;
     const config = this.currentSession.config;
-    
+
     const duration = Date.now() - state.startTime.getTime();
     const totalSize = folderSummaries.reduce((sum, folder) => sum + folder.totalSize, 0);
     const skippedDocuments = Math.max(0, state.totalDocuments - state.processedDocuments);
@@ -322,7 +330,7 @@ export class ExportStateManager {
       duration,
       exportFormat: config.exportFormat,
       errors: state.errors,
-      folderStructure: folderSummaries
+      folderStructure: folderSummaries,
     };
   }
 
@@ -398,7 +406,7 @@ export class ExportStateManager {
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -413,21 +421,21 @@ export class ExportStateManager {
   } {
     const stats = {
       totalSessions: this.currentSession ? 1 : 0,
-      currentSession: this.currentSession
+      currentSession: this.currentSession,
     };
 
     if (this.currentSession) {
       const state = this.currentSession.state;
-      
+
       if (state.processedDocuments > 0) {
         const elapsedTime = Date.now() - state.startTime.getTime();
         const averageExportSpeed = (state.processedDocuments / elapsedTime) * 60000; // per minute
         const successRate = (state.successfulExports / state.processedDocuments) * 100;
-        
+
         return {
           ...stats,
           averageExportSpeed,
-          successRate
+          successRate,
         };
       }
     }
@@ -454,12 +462,14 @@ export class ExportStateManager {
     }
 
     const progress = this.getProgress();
-    
-    this.progressCallbacks.forEach(callback => {
+
+    this.progressCallbacks.forEach((callback) => {
       try {
         callback(progress);
       } catch (error) {
-        this.logger.warn(`Progress callback error: ${error instanceof Error ? error.message : String(error)}`);
+        this.logger.warn(
+          `Progress callback error: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
     });
   }

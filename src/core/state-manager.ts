@@ -37,12 +37,14 @@ export class StateManager implements IStateManager {
   async saveState(sessionId: string, state: MigrationState): Promise<void> {
     await this.ensureStateDir();
     const sessionPath = this.getSessionPath(sessionId);
-    
+
     try {
       const stateData = JSON.stringify(state, null, 2);
       await fs.writeFile(sessionPath, stateData, 'utf8');
     } catch (error) {
-      throw new Error(`Failed to save migration state: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to save migration state: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -51,25 +53,27 @@ export class StateManager implements IStateManager {
    */
   async loadState(sessionId: string): Promise<MigrationState | null> {
     const sessionPath = this.getSessionPath(sessionId);
-    
+
     try {
       const stateData = await fs.readFile(sessionPath, 'utf8');
       const state = JSON.parse(stateData) as MigrationState;
-      
+
       // Convert date strings back to Date objects
       state.startTime = new Date(state.startTime);
       state.lastUpdateTime = new Date(state.lastUpdateTime);
-      state.errors = state.errors.map(error => ({
+      state.errors = state.errors.map((error) => ({
         ...error,
-        timestamp: new Date(error.timestamp)
+        timestamp: new Date(error.timestamp),
       }));
-      
+
       return state;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         return null; // Session doesn't exist
       }
-      throw new Error(`Failed to load migration state: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to load migration state: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -78,12 +82,14 @@ export class StateManager implements IStateManager {
    */
   async deleteState(sessionId: string): Promise<void> {
     const sessionPath = this.getSessionPath(sessionId);
-    
+
     try {
       await fs.unlink(sessionPath);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        throw new Error(`Failed to delete migration state: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        throw new Error(
+          `Failed to delete migration state: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
       }
       // If file doesn't exist, consider it already deleted
     }
@@ -97,10 +103,12 @@ export class StateManager implements IStateManager {
       await this.ensureStateDir();
       const files = await fs.readdir(this.stateDir);
       return files
-        .filter(file => file.endsWith('.json'))
-        .map(file => path.basename(file, '.json'));
+        .filter((file) => file.endsWith('.json'))
+        .map((file) => path.basename(file, '.json'));
     } catch (error) {
-      throw new Error(`Failed to list migration sessions: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to list migration sessions: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -110,12 +118,14 @@ export class StateManager implements IStateManager {
   async saveSession(session: MigrationSession): Promise<void> {
     await this.ensureStateDir();
     const sessionPath = this.getSessionPath(`session-${session.id}`);
-    
+
     try {
       const sessionData = JSON.stringify(session, null, 2);
       await fs.writeFile(sessionPath, sessionData, 'utf8');
     } catch (error) {
-      throw new Error(`Failed to save migration session: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to save migration session: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -124,27 +134,29 @@ export class StateManager implements IStateManager {
    */
   async loadSession(sessionId: string): Promise<MigrationSession | null> {
     const sessionPath = this.getSessionPath(`session-${sessionId}`);
-    
+
     try {
       const sessionData = await fs.readFile(sessionPath, 'utf8');
       const session = JSON.parse(sessionData) as MigrationSession;
-      
+
       // Convert date strings back to Date objects
       session.createdAt = new Date(session.createdAt);
       session.updatedAt = new Date(session.updatedAt);
       session.state.startTime = new Date(session.state.startTime);
       session.state.lastUpdateTime = new Date(session.state.lastUpdateTime);
-      session.state.errors = session.state.errors.map(error => ({
+      session.state.errors = session.state.errors.map((error) => ({
         ...error,
-        timestamp: new Date(error.timestamp)
+        timestamp: new Date(error.timestamp),
       }));
-      
+
       return session;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         return null;
       }
-      throw new Error(`Failed to load migration session: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to load migration session: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -160,7 +172,7 @@ export class StateManager implements IStateManager {
     const updatedSession: MigrationSession = {
       ...session,
       ...updates,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     await this.saveSession(updatedSession);
@@ -183,7 +195,7 @@ export class StateManager implements IStateManager {
       failedMigrations: 0,
       errors: [],
       startTime: now,
-      lastUpdateTime: now
+      lastUpdateTime: now,
     };
 
     const session: MigrationSession = {
@@ -192,7 +204,7 @@ export class StateManager implements IStateManager {
       state: initialState,
       documents,
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
     };
 
     await this.saveSession(session);
@@ -231,7 +243,7 @@ export class StateManager implements IStateManager {
       successfulMigrations: session.state.successfulMigrations,
       failedMigrations: session.state.failedMigrations,
       createdAt: session.createdAt,
-      updatedAt: session.updatedAt
+      updatedAt: session.updatedAt,
     };
   }
 }
