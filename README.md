@@ -86,7 +86,7 @@ npx quip-export --help
 
 #### Option 3: From Source
 ```bash
-git clone https://github.com/your-org/quip-export.git
+git clone https://github.com/anthragz/quip-export.git
 cd quip-export
 npm install
 npm run build

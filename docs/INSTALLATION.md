@@ -69,7 +69,7 @@ For environments without npm access:
 
 ```bash
 # Download source
-git clone https://github.com/your-org/quip-export.git
+git clone https://github.com/anthragz/quip-export.git
 cd quip-export
 
 # Install dependencies
@@ -426,7 +426,7 @@ For contributors and developers:
 
 ```bash
 # Clone repository
-git clone https://github.com/your-org/quip-export.git
+git clone https://github.com/anthragz/quip-export.git
 cd quip-export
 
 # Install dependencies
