@@ -26,30 +26,24 @@ quip-export setup
 
 This interactive setup will guide you through:
 - Configuring your Quip domain (e.g., quip.com)
-- Choosing authentication method (Personal Access Token recommended)
 - Testing your connection
 
 ### 3. Browse Your Documents
 
 ```bash
-# View your folder structure
-quip-export list folders
+# Lis documents
+quip-export list
 
-# View documents in a specific folder
-quip-export list documents --folder "Private"
 ```
 
 ### 4. Export Your Documents
 
 ```bash
-# Export all documents to local storage
-quip-export export --output ./my-quip-backup
+# Configure export
+quip-export export configure
 
-# Export specific folders only
-quip-export export --folders "Private,Starred" --output ./my-documents
-
-# Test with a few documents first
-quip-export export --limit 5 --output ./test-export
+# Export documents
+quip-export export start
 ```
 
 ## 📋 Table of Contents
@@ -68,19 +62,20 @@ quip-export export --limit 5 --output ./test-export
 
 ### Prerequisites
 
-- Node.js 16 or higher
+- Node.js 18 or higher
 - npm or yarn package manager
 
 ### Install Options
 
 #### Option 1: Global Installation (Recommended)
 ```bash
-npm install -g quip-export
+npm install -g ./
+quip-exort --help
 ```
 
 #### Option 2: Local Installation
 ```bash
-npm install quip-export
+npm install ./
 npx quip-export --help
 ```
 
@@ -95,36 +90,34 @@ npm link
 
 ## 🔐 Authentication Setup
 
-### Step 1: Configure Your Quip Domain
+### Step 1: Run Interactive Setup
 
 The tool supports both public Quip (quip.com) and enterprise instances:
 
 ```bash
-quip-export auth setup
+quip-export setup
 ```
 
 You'll be prompted for:
-- **Quip Domain**: Enter your domain (e.g., `quip.com`)
-- **Authentication Method**: Choose Personal Access Token (recommended) or OAuth
+- **Quip Domain**: Enter your domain without http:// or trailing / (e.g., `quip.com` or `quip-enterprise.com`)
+- **Personal Access Token**: Your Quip API token
+- **Export Preferences**: Output directory, format, and other settings
 
-### Step 2: Get Your Personal Access Token (Recommended)
+### Step 2: Get Your Personal Access Token
 
 1. **Generate Token**: Visit your domain's token page:
    - Public Quip: https://quip.com/dev/token
    - Enterprise: https://your-domain.com/dev/token
 
-2. **Copy Token**: Copy the generated token
+2. **Copy Token**: Click "Generate Token" and copy the generated token
 
-3. **Configure Tool**: Paste the token when prompted during setup
+3. **Configure Tool**: Paste the token when prompted during setup 
 
 ### Step 3: Verify Authentication
 
 ```bash
 # Check authentication status
 quip-export auth status
-
-# Test connection
-quip-export auth test
 ```
 
 ## 📖 Usage Guide
@@ -133,102 +126,105 @@ quip-export auth test
 
 | Command | Description |
 |---------|-------------|
-| `quip-export auth setup` | Interactive authentication setup |
+| `quip-export setup` | Interactive setup for authentication and export preferences |
 | `quip-export auth status` | Check authentication status |
-| `quip-export list folders` | View your folder structure |
-| `quip-export list documents` | List all documents |
-| `quip-export export` | Export documents to local storage |
+| `quip-export list` | List all accessible documents |
+| `quip-export export configure` | Configure export preferences |
+| `quip-export export preview` | Preview what will be exported |
+| `quip-export export start` | Start the export process |
+| `quip-export export check-formats` | Check available export formats and dependencies |
 | `quip-export --help` | Show all available commands |
 
 ### Browsing Your Documents
 
-#### View Folder Structure
-```bash
-# Show all folders with document counts
-quip-export list folders
-
-# Show detailed folder information
-quip-export list folders --detailed
-```
-
 #### List Documents
 ```bash
-# List all documents
-quip-export list documents
+# List all accessible documents
+quip-export list
 
-# List documents in specific folders
-quip-export list documents --folder "Private"
-quip-export list documents --folder "Shared"
+# List with detailed information
+quip-export list --verbose
 
-# List with metadata
-quip-export list documents --detailed
+# List in CSV format
+quip-export list --format csv
+
+# Limit results
+quip-export list --limit 20
 ```
 
 ### Exporting Documents
 
-#### Basic Export
+#### Basic Export Workflow
 ```bash
-# Export all documents
-quip-export export --output ./my-quip-backup
+# 1. Configure export preferences
+quip-export export configure
 
-# Export with progress display
-quip-export export --output ./backup --verbose
-```
+# 2. Preview what will be exported
+quip-export export preview
 
-#### Selective Export
-```bash
-# Export specific folders
-quip-export export --folders "Private,Starred" --output ./documents
-
-# Export with document limit (for testing)
-quip-export export --limit 10 --output ./test
-
-# Export excluding shared documents
-quip-export export --exclude-shared --output ./private-docs
-```
-
-#### Format Options
-```bash
-# Export as DOCX (default)
-quip-export export --format docx --output ./docx-export
-
-# Export as HTML
-quip-export export --format html --output ./html-export
-
-# Export in both formats
-quip-export export --format both --output ./complete-export
+# 3. Start the export
+quip-export export start
 ```
 
 ## ⚙️ Export Configuration
 
-### Command Line Options
+### Interactive Configuration
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--output <path>` | Output directory for exported files | `./quip-export` |
-| `--format <type>` | Export format: `docx`, `html`, `both` | `docx` |
-| `--folders <list>` | Comma-separated folder names to export | All folders |
-| `--limit <number>` | Maximum number of documents to export | No limit |
-| `--exclude-shared` | Skip shared documents | Include all |
-| `--rate-limit <ms>` | Delay between API calls (milliseconds) | 1000 |
-| `--retry-attempts <num>` | Number of retry attempts for failed exports | 3 |
-| `--verbose` | Show detailed progress information | false |
+Run the interactive configuration wizard:
+
+```bash
+quip-export export configure
+```
+
+This will prompt you for:
+- **Output Directory**: Where to save exported files (default: `./exported-documents`)
+- **Export Format**: Choose from native (DOCX/XLSX), HTML, or Markdown
+- **Format-Specific Options**: Additional options for selected format (e.g., markdown image handling)
+- **Document Selection**: Include shared documents, preserve folder structure
+- **Performance Settings**: Batch size, rate limiting, retry attempts
 
 ### Configuration File
 
-Create a `.quip-export-config.json` file in your project directory:
+The tool creates a `.export-config.json` file with your settings:
 
 ```json
 {
-  "outputDirectory": "./my-exports",
-  "exportFormat": "docx",
-  "maxDocuments": 100,
-  "includeSharedDocuments": true,
-  "rateLimitDelay": 1000,
-  "retryAttempts": 3,
-  "includeFolders": ["Private", "Starred"]
+  "quip": {
+    "domain": "quip.com",
+    "baseUrl": "https://platform.quip.com",
+    "personalAccessToken": "your-token-here"
+  },
+  "export": {
+    "outputDirectory": "./exported-documents",
+    "exportFormat": "native",
+    "formatSpecificOptions": {
+      "markdown": {
+        "imageHandling": "separate",
+        "preserveComments": false,
+        "frontMatter": true
+      }
+    },
+    "includeSharedDocuments": true,
+    "preserveFolderStructure": true,
+    "batchSize": 10,
+    "retryAttempts": 3,
+    "rateLimitDelay": 1000
+  }
 }
 ```
+
+### Available Export Formats
+
+Check which formats are available on your system:
+
+```bash
+quip-export export check-formats
+```
+
+Supported formats:
+- **native**: Document-appropriate format (DOCX for documents, XLSX for spreadsheets)
+- **html**: Universal web format
+- **markdown**: Plain text markup (requires pandoc for full support)
 
 ## 📁 Folder Structure
 
@@ -264,11 +260,13 @@ my-quip-backup/
 
 ## 📄 File Formats
 
-### DOCX Format (Recommended)
+### Native Format (Recommended)
 - **Best for**: Documents that will be edited in Microsoft Word or Google Docs
 - **Includes**: Full formatting, images, tables, comments
+- **File types**: DOCX for documents, XLSX for spreadsheets
 - **File size**: Smaller, compressed format
-- **Compatibility**: Works with most word processors
+- **Compatibility**: Works with most office applications
+  > ℹ️ **Note:** Embedded images in documents are not exported in this format
 
 ### HTML Format
 - **Best for**: Web viewing, simple archival
@@ -276,10 +274,12 @@ my-quip-backup/
 - **File size**: Larger due to embedded media
 - **Compatibility**: Opens in any web browser
 
-### Both Formats
-- **Best for**: Maximum compatibility and backup
-- **Result**: Creates both DOCX and HTML versions of each document
-- **File size**: Largest option but most flexible
+### Markdown Format
+- **Best for**: Version control, plain text editing
+- **Includes**: Text content, basic formatting, optional images
+- **Requirements**: Pandoc for full conversion support
+- **Options**: Configure image handling, comments, front matter
+- **Compatibility**: Works with any text editor
 
 ## 🔍 Troubleshooting
 
@@ -293,15 +293,15 @@ quip-export auth status
 # Regenerate your personal access token
 # Visit: https://your-domain.com/dev/token
 # Then reconfigure:
-quip-export auth setup
+quip-export setup
 ```
 
 #### "Domain not configured" or "Invalid domain"
 ```bash
-# Reconfigure your domain
-quip-export auth setup
+# Reconfigure your domain and token
+quip-export setup
 
-# Verify domain format (no https://, just the domain)
+# Verify domain format (no https://, just the domain like quip.com)
 ```
 
 ### Export Issues
@@ -309,22 +309,23 @@ quip-export auth setup
 #### "No documents found"
 ```bash
 # Check if you have access to documents
-quip-export list documents
+quip-export list
 
-# Try including shared documents
-quip-export list documents --include-shared
+# List with verbose output to see details
+quip-export list --verbose
 
-# Verify folder names
-quip-export list folders
+# Check authentication
+quip-export auth status
 ```
 
 #### "Export failed" or "Rate limit exceeded"
 ```bash
-# Increase rate limit delay
-quip-export export --rate-limit 2000 --output ./backup
+# Reconfigure with higher rate limit delay
+quip-export export configure
+# When prompted, set rate limit delay to 2000ms or higher
 
-# Reduce batch size
-quip-export export --limit 50 --output ./partial-backup
+# Reduce batch size in configuration
+# Set batch size to 5 or lower during configuration
 
 # Check available disk space
 df -h
@@ -335,12 +336,12 @@ df -h
 # Check output directory permissions
 ls -la ./
 
-# Try a different output directory
-quip-export export --output ~/Documents/quip-backup
+# Reconfigure with different output directory
+quip-export export configure
+# Choose a directory you have write access to
 
 # Create directory manually
 mkdir -p ./my-backup
-quip-export export --output ./my-backup
 ```
 
 ### Network Issues
@@ -350,11 +351,9 @@ quip-export export --output ./my-backup
 # Check internet connection
 ping quip.com
 
-# Try with increased timeout
-quip-export export --timeout 30000 --output ./backup
+# Check authentication status
+quip-export auth status
 
-# Use verbose mode to see detailed errors
-quip-export export --verbose --output ./backup
 ```
 
 ### File System Issues
@@ -369,154 +368,10 @@ quip-export export --verbose --output ./backup
 # Check available space
 df -h
 
-# Clean up space or choose different output directory
-quip-export export --output /path/to/larger/drive/backup
+# Reconfigure with different output directory
+quip-export export configure
+# Choose a directory on a drive with more space
 ```
-
-## ☁️ Cloud Upload Guide
-
-After exporting your documents locally, you can upload them to any cloud service:
-
-### Microsoft OneDrive
-
-#### Option 1: OneDrive Desktop App
-1. Install OneDrive desktop application
-2. Copy exported folder to your OneDrive folder
-3. Wait for automatic sync
-
-#### Option 2: Web Upload
-1. Go to [onedrive.live.com](https://onedrive.live.com)
-2. Click "Upload" → "Folder"
-3. Select your exported folder
-
-#### Option 3: Command Line (Advanced)
-```bash
-# Install OneDrive CLI tool
-npm install -g onedrive-cli
-
-# Upload folder
-onedrive upload ./my-quip-backup /Documents/QuipBackup
-```
-
-### Google Drive
-
-#### Option 1: Google Drive Desktop App
-1. Install Google Drive desktop application
-2. Copy exported folder to your Google Drive folder
-3. Wait for automatic sync
-
-#### Option 2: Web Upload
-1. Go to [drive.google.com](https://drive.google.com)
-2. Click "New" → "Folder upload"
-3. Select your exported folder
-
-#### Option 3: Command Line (Advanced)
-```bash
-# Install gdrive CLI tool
-# Follow installation instructions at: https://github.com/prasmussen/gdrive
-
-# Upload folder
-gdrive upload -r ./my-quip-backup
-```
-
-### Dropbox
-
-#### Option 1: Dropbox Desktop App
-1. Install Dropbox desktop application
-2. Copy exported folder to your Dropbox folder
-3. Wait for automatic sync
-
-#### Option 2: Web Upload
-1. Go to [dropbox.com](https://dropbox.com)
-2. Click "Upload" → "Folder"
-3. Select your exported folder
-
-### Other Cloud Services
-
-Most cloud services support folder upload through:
-- **Desktop applications**: Drag and drop to sync folder
-- **Web interfaces**: Upload folder option
-- **Command line tools**: Service-specific CLI tools
-
-## 🔧 Advanced Usage
-
-### Batch Processing
-
-For large document sets, use batch processing options:
-
-```bash
-# Process in smaller batches
-quip-export export --batch-size 25 --output ./backup
-
-# Add delays between batches
-quip-export export --batch-delay 5000 --output ./backup
-
-# Resume interrupted exports
-quip-export export --resume --session-id abc123 --output ./backup
-```
-
-### Custom Scripts
-
-Create custom export scripts for repeated use:
-
-```bash
-#!/bin/bash
-# export-script.sh
-
-# Export private documents only
-quip-export export \
-  --folders "Private" \
-  --format docx \
-  --output "./backups/$(date +%Y-%m-%d)" \
-  --verbose
-
-# Upload to cloud (example with rclone)
-rclone copy "./backups/$(date +%Y-%m-%d)" "onedrive:QuipBackups/"
-```
-
-### Environment Variables
-
-Set environment variables for automation:
-
-```bash
-export QUIP_DOMAIN="quip.com"
-export QUIP_TOKEN="your-personal-access-token"
-export QUIP_OUTPUT_DIR="./automated-backups"
-
-quip-export export --output "$QUIP_OUTPUT_DIR"
-```
-
-### Logging and Monitoring
-
-Enable detailed logging for troubleshooting:
-
-```bash
-# Enable debug logging
-DEBUG=quip-export:* quip-export export --output ./backup
-
-# Save logs to file
-quip-export export --output ./backup --log-file ./export.log
-
-# Monitor progress with JSON output
-quip-export export --output ./backup --json > progress.json
-```
-
-## 📞 Support
-
-### Getting Help
-
-```bash
-# General help
-quip-export --help
-
-# Command-specific help
-quip-export export --help
-quip-export auth --help
-
-# Version information
-quip-export --version
-```
-
 ### Common Issues
 
 1. **Authentication Problems**: Regenerate your personal access token

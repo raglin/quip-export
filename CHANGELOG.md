@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Filename Sanitization Bug**: Fixed critical issue where forward slashes (/) in document titles were not being sanitized on macOS and Linux, causing file write failures with ENOENT errors
+  - Forward slashes, backslashes, and colons are now replaced with hyphens for better readability (e.g., "24/07/2023" becomes "24-07-2023")
+  - Other reserved characters (<>"|?*) are replaced with underscores
+  - Consecutive separators are collapsed into a single separator
+  - All platforms now use consistent sanitization rules
+- **Folder Name Retrieval**: Fixed issue where Quip folder names were hardcoded as "Subfolder" instead of fetching actual folder names from the API
+  - Exported folder structures now use real folder names from Quip
+  - Falls back to folder ID if metadata cannot be retrieved
+  - Improves navigation of exported content
+
+### Changed
+- Character replacement strategy for filename sanitization:
+  - `/` → `-` (hyphen, preserves date readability)
+  - `\` → `-` (hyphen, consistency with forward slash)
+  - `:` → `-` (hyphen, preserves time readability)
+  - Other reserved characters → `_` (underscore)
+
 ### Added
 - Initial release of Quip Bulk Export Tool
 - Complete documentation suite

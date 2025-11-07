@@ -86,8 +86,8 @@ describe('FileWriter', () => {
 
       expect(result.success).toBe(true);
       expect(result.originalName).toBe('test<>:|?*file.html');
-      expect(result.finalName).toBe('test______file.html');
-      expect(result.filePath).toBe(path.join(tempDir, 'test______file.html'));
+      expect(result.finalName).toBe('test-file.html'); // All consecutive separators collapsed to single hyphen
+      expect(result.filePath).toBe(path.join(tempDir, 'test-file.html'));
     });
 
     it('should automatically add file extensions based on document type and export format', async () => {
@@ -363,7 +363,7 @@ describe('FileWriter', () => {
   describe('Safe Filename Creation', () => {
     it('should create safe filenames for different document types', () => {
       expect(fileWriter.createSafeFileName('My Document', 'DOCUMENT', 'docx')).toBe('My Document.docx');
-      expect(fileWriter.createSafeFileName('My Spreadsheet', 'SPREADSHEET', 'docx')).toBe('My Spreadsheet.xlsx');
+      expect(fileWriter.createSafeFileName('My Spreadsheet', 'SPREADSHEET', 'docx')).toBe('My Spreadsheet.xlsx'); // SPREADSHEET type always gets .xlsx
       expect(fileWriter.createSafeFileName('My Document', 'DOCUMENT', 'html')).toBe('My Document.html');
     });
 
@@ -374,7 +374,7 @@ describe('FileWriter', () => {
 
     it('should sanitize unsafe characters in titles', () => {
       const result = fileWriter.createSafeFileName('My<>:|?*Document', 'DOCUMENT', 'docx');
-      expect(result).toBe('My______Document.docx');
+      expect(result).toBe('My-Document.docx'); // All consecutive separators collapsed to single hyphen
     });
   });
 
@@ -544,8 +544,9 @@ describe('FileWriter', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.finalName).toBe('test_file.md');
-      expect(result.filePath).toBe(path.join(tempDir, 'markdown', 'test_file.md'));
+      // Colons become hyphens, other reserved chars become underscores, then consecutive separators collapse
+      expect(result.finalName).toBe('test-file.md');
+      expect(result.filePath).toBe(path.join(tempDir, 'markdown', 'test-file.md'));
     });
 
     it('should handle format directory creation errors gracefully', async () => {
@@ -594,7 +595,8 @@ describe('FileWriter', () => {
 
     it('should sanitize unsafe characters with format-specific extensions', () => {
       const result = fileWriter.createSafeFileNameForFormat('My<>:|?*Document', 'html');
-      expect(result).toBe('My_Document.html');
+      // Colons become hyphens, other reserved chars become underscores, then consecutive separators collapse
+      expect(result).toBe('My-Document.html');
     });
 
     it('should handle multiple dots in filenames', () => {

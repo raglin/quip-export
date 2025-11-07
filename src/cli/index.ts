@@ -804,15 +804,6 @@ authCommand
 program
   .command('list')
   .description('List available Quip documents')
-  .option('-t, --type <type>', 'Filter by document type (DOCUMENT, SPREADSHEET, CHAT)')
-  .option('-s, --shared', 'Include shared documents')
-  .option('--no-shared', 'Exclude shared documents')
-  .option('--templates', 'Include template documents')
-  .option('--no-templates', 'Exclude template documents (default)')
-  .option('--deleted', 'Include deleted documents')
-  .option('--no-deleted', 'Exclude deleted documents (default)')
-  .option('-q, --query <query>', 'Search documents by title or content')
-  .option('-f, --folder <folderId>', 'List documents from specific folder')
   .option('--format <format>', 'Output format (table, json, csv)', 'table')
   .option('--limit <number>', 'Limit number of results', '50')
   .option('-v, --verbose', 'Show detailed document information')
@@ -852,64 +843,29 @@ program
       // Build document filter
       const limit = parseInt(options.limit);
       const filter: any = {
-        includeShared: options.shared,
-        includeTemplates: options.templates,
-        includeDeleted: options.deleted,
         maxDocuments: limit > 0 ? limit : undefined,
       };
 
-      if (options.type) {
-        const validTypes = ['DOCUMENT', 'SPREADSHEET', 'CHAT'];
-        const type = options.type.toUpperCase();
-        if (!validTypes.includes(type)) {
-          console.error(`❌ Invalid document type: ${options.type}`);
-          console.error(`Valid types: ${validTypes.join(', ')}`);
-          process.exit(1);
-        }
-        filter.types = [type];
-      }
-
       let documents: any[] = [];
 
-      if (options.query) {
-        // Search for documents
-        const searchMessage = filter.maxDocuments
-          ? `🔍 Searching for: "${options.query}" (limit: ${filter.maxDocuments})`
-          : `🔍 Searching for: "${options.query}"`;
-        console.log(searchMessage);
-        documents = await quipService.searchDocuments(options.query, filter);
-      } else if (options.folder) {
-        // Get documents from specific folder
-        console.log(`📁 Getting documents from folder: ${options.folder}`);
-        documents = await quipService.getDocumentsFromFolder(options.folder, true);
+      // Discover all documents
+      const discoveryMessage = filter.maxDocuments
+        ? `🔍 Discovering up to ${filter.maxDocuments} documents...`
+        : '🔍 Discovering all accessible documents...';
+      console.log(discoveryMessage);
 
-        // Apply limit for folder-specific queries (folder discovery doesn't support early limiting yet)
-        if (filter.maxDocuments && documents.length > filter.maxDocuments) {
-          console.log(
-            `📝 Showing first ${filter.maxDocuments} of ${documents.length} documents from folder\n`
-          );
-          documents = documents.slice(0, filter.maxDocuments);
+      const discovery = await quipService.discoverDocuments(filter);
+      documents = discovery.documents;
+
+      if (options.verbose) {
+        console.log(`📊 Discovery Summary:`);
+        console.log(`  Total documents found: ${discovery.totalCount}`);
+        console.log(`  After filtering: ${discovery.filteredCount}`);
+        console.log(`  Folder structures: ${discovery.folders.length}`);
+        if (filter.maxDocuments) {
+          console.log(`  Limited to: ${filter.maxDocuments} documents`);
         }
-      } else {
-        // Discover all documents
-        const discoveryMessage = filter.maxDocuments
-          ? `🔍 Discovering up to ${filter.maxDocuments} documents...`
-          : '🔍 Discovering all accessible documents...';
-        console.log(discoveryMessage);
-
-        const discovery = await quipService.discoverDocuments(filter);
-        documents = discovery.documents;
-
-        if (options.verbose) {
-          console.log(`📊 Discovery Summary:`);
-          console.log(`  Total documents found: ${discovery.totalCount}`);
-          console.log(`  After filtering: ${discovery.filteredCount}`);
-          console.log(`  Folder structures: ${discovery.folders.length}`);
-          if (filter.maxDocuments) {
-            console.log(`  Limited to: ${filter.maxDocuments} documents`);
-          }
-          console.log('');
-        }
+        console.log('');
       }
 
       if (documents.length === 0) {
@@ -934,14 +890,6 @@ program
       }
 
       console.log(`\n✅ Listed ${documents.length} documents successfully!`);
-
-      if (!options.query && !options.folder) {
-        console.log('\n💡 Tips:');
-        console.log('  • Use --query to search for specific documents');
-        console.log('  • Use --folder to list documents from a specific folder');
-        console.log('  • Use --type to filter by document type (DOCUMENT, SPREADSHEET, CHAT)');
-        console.log('  • Use --format json or --format csv for different output formats');
-      }
     } catch (error) {
       console.error(
         '❌ Failed to list documents:',
@@ -959,17 +907,7 @@ const exportCommand = program
 exportCommand
   .command('configure')
   .description('Interactive export configuration setup')
-  .option('--output-dir <directory>', 'Set output directory')
-  .option('--format <format>', 'Set export format - native, html, or markdown')
-  .option(
-    '--markdown-images <mode>',
-    'Markdown image handling: inline, separate, skip (default: separate)'
-  )
-  .option('--markdown-comments', 'Preserve Quip comments in markdown')
-  .option('--markdown-frontmatter', 'Include metadata as front matter in markdown (default: true)')
-  .option('--batch-size <number>', 'Set batch processing size')
-  .option('--save', 'Save configuration for future use')
-  .action(async (options) => {
+  .action(async () => {
     try {
       console.log('⚙️  Export Configuration Setup');
       console.log('═'.repeat(50));
@@ -1008,9 +946,7 @@ exportCommand
       console.log('\n📁 Output Directory Configuration:');
       const defaultOutputDir = config.outputDirectory || './exported-documents';
       const outputDirectory =
-        options.outputDir ||
-        (await promptUser(`Output directory (default: ${defaultOutputDir}): `)) ||
-        defaultOutputDir;
+        (await promptUser(`Output directory (default: ${defaultOutputDir}): `)) || defaultOutputDir;
 
       console.log('\n📄 Export Format Configuration:');
       console.log('Available formats:');
@@ -1024,26 +960,24 @@ exportCommand
       // Handle existing configuration migration
       const existingFormat = config.exportFormat || 'native';
 
-      let exportFormat = options.format;
+      let exportFormat = 'native';
 
-      if (!exportFormat) {
-        const formatChoice =
-          (await promptUser(
-            `Choose format (1=native, 2=html, 3=markdown, default: ${existingFormat}): `
-          )) || '1';
+      const formatChoice =
+        (await promptUser(
+          `Choose format (1=native, 2=html, 3=markdown, default: ${existingFormat}): `
+        )) || '1';
 
-        switch (formatChoice) {
-          case '2':
-            exportFormat = 'html';
-            break;
-          case '3':
-            exportFormat = 'markdown';
-            break;
-          case '1':
-          default:
-            exportFormat = 'native';
-            break;
-        }
+      switch (formatChoice) {
+        case '2':
+          exportFormat = 'html';
+          break;
+        case '3':
+          exportFormat = 'markdown';
+          break;
+        case '1':
+        default:
+          exportFormat = 'native';
+          break;
       }
 
       // Format-specific options for markdown
@@ -1081,9 +1015,9 @@ exportCommand
 
       console.log('\n⚡ Performance Configuration:');
       const defaultBatchSize = config.batchSize || 10;
-      const batchSizeInput =
-        options.batchSize ||
-        (await promptUser(`Batch size for processing (1-50, default: ${defaultBatchSize}): `));
+      const batchSizeInput = await promptUser(
+        `Batch size for processing (1-50, default: ${defaultBatchSize}): `
+      );
       const batchSize = parseInt(batchSizeInput) || defaultBatchSize;
 
       if (batchSize < 1 || batchSize > 50) {
@@ -1204,10 +1138,6 @@ exportCommand
   .command('preview')
   .description('Preview what documents will be exported with current configuration')
   .option('-c, --config <file>', 'Use specific configuration file')
-  .option(
-    '--format <formats>',
-    'Override export format(s) for preview - single format or comma-separated list'
-  )
   .option('--limit <number>', 'Limit preview to N documents', '20')
   .action(async (options) => {
     try {
@@ -1253,15 +1183,9 @@ exportCommand
       const exportSettings = exportConfig.export || exportConfig;
 
       // Handle format overrides from command line for preview
-      let previewFormats = exportSettings.exportFormats || [exportSettings.exportFormat || 'docx'];
-
-      if (options.format) {
-        if (options.format.includes(',')) {
-          previewFormats = options.format.split(',').map((f: string) => f.trim());
-        } else {
-          previewFormats = [options.format];
-        }
-      }
+      const previewFormats = exportSettings.exportFormats || [
+        exportSettings.exportFormat || 'docx',
+      ];
 
       // Discover documents based on configuration
       const discovery = await quipService.discoverDocuments({
@@ -1411,12 +1335,7 @@ exportCommand
   .command('start')
   .description('Start the export process with configured settings')
   .option('-c, --config <file>', 'Use specific configuration file')
-  .option('--format <format>', 'Override export format - native, html, or markdown')
-  .option('--markdown-images <mode>', 'Markdown image handling: inline, separate, skip')
-  .option('--markdown-comments', 'Preserve Quip comments in markdown')
-  .option('--markdown-frontmatter', 'Include metadata as front matter in markdown')
   .option('--dry-run', 'Preview export without actually downloading files')
-  .option('--resume <sessionId>', 'Resume a previous export session')
   .action(async (options) => {
     try {
       const authManager = await getAuthManager();
@@ -1454,32 +1373,14 @@ exportCommand
       const exportSettings = exportConfig.export || exportConfig;
 
       // Handle format overrides from command line
-      let finalExportFormats = exportSettings.exportFormats || [
+      const finalExportFormats = exportSettings.exportFormats || [
         exportSettings.exportFormat || 'docx',
       ];
       let finalFormatOptions = exportSettings.formatSpecificOptions || {};
 
-      if (options.format) {
-        if (options.format.includes(',')) {
-          finalExportFormats = options.format.split(',').map((f: string) => f.trim());
-        } else {
-          finalExportFormats = [options.format];
-        }
-      }
-
       // Handle markdown-specific CLI options
       if (finalExportFormats.includes('markdown')) {
         const markdownOptions = finalFormatOptions.markdown || {};
-
-        if (options.markdownImages) {
-          markdownOptions.imageHandling = options.markdownImages;
-        }
-        if (options.markdownComments !== undefined) {
-          markdownOptions.preserveComments = options.markdownComments;
-        }
-        if (options.markdownFrontmatter !== undefined) {
-          markdownOptions.frontMatter = options.markdownFrontmatter;
-        }
 
         finalFormatOptions = {
           ...finalFormatOptions,
@@ -1637,75 +1538,6 @@ exportCommand
   .command('check-formats')
   .description('Check format capabilities and dependencies')
   .action(checkFormatCapabilities);
-
-exportCommand
-  .command('status')
-  .description('Check the status of current or recent export operations')
-  .action(async () => {
-    try {
-      console.log('📊 Export Status');
-      console.log('═'.repeat(40));
-
-      // Check for active export sessions
-      // This is a simplified implementation - in a real scenario, you'd check for running processes
-      console.log('🔍 Checking for active export sessions...');
-
-      // Check for recent export logs or state files
-      // This would typically check for active sessions
-      console.log('📭 No active export sessions found.');
-
-      // Show recent export configuration
-      try {
-        const configFile = await fs.readFile('.export-config.json', 'utf8');
-        const config = JSON.parse(configFile);
-
-        console.log('\n⚙️  Current Export Configuration:');
-        console.log(`  Output Directory: ${config.outputDirectory}`);
-
-        // Handle both old and new format configurations
-        if (config.exportFormats && config.exportFormats.length > 0) {
-          console.log(
-            `  Export Formats: ${config.exportFormats.map((f: string) => f.toUpperCase()).join(', ')}`
-          );
-          if (config.useFormatDirectories) {
-            console.log(`  Format Organization: Separate directories for each format`);
-          }
-          if (config.formatSpecificOptions?.markdown) {
-            console.log(`  Markdown Options:`);
-            console.log(
-              `    Image Handling: ${config.formatSpecificOptions.markdown.imageHandling || 'separate'}`
-            );
-            console.log(
-              `    Preserve Comments: ${config.formatSpecificOptions.markdown.preserveComments ? 'Yes' : 'No'}`
-            );
-            console.log(
-              `    Front Matter: ${config.formatSpecificOptions.markdown.frontMatter !== false ? 'Yes' : 'No'}`
-            );
-          }
-        } else {
-          console.log(`  Export Format: ${config.exportFormat?.toUpperCase() || 'DOCX'}`);
-        }
-
-        console.log(`  Include Shared: ${config.includeSharedDocuments ? 'Yes' : 'No'}`);
-        console.log(`  Batch Size: ${config.batchSize}`);
-        console.log(`  Last Updated: ${new Date(config.updatedAt).toLocaleString()}`);
-      } catch {
-        console.log('\n❌ No export configuration found.');
-        console.log('💡 Run "quip-export export configure" to set up export preferences.');
-      }
-
-      console.log('\n💡 Available commands:');
-      console.log('  • quip-export export configure - Set up export preferences');
-      console.log('  • quip-export export preview - Preview what will be exported');
-      console.log('  • quip-export export start - Begin export process');
-    } catch (error) {
-      console.error(
-        '❌ Failed to check export status:',
-        error instanceof Error ? error.message : String(error)
-      );
-      process.exit(1);
-    }
-  });
 
 exportCommand
   .command('report')

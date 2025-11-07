@@ -479,6 +479,40 @@ export class DocumentDiscovery {
   }
 
   /**
+   * Get folder metadata from Quip API
+   * @private
+   */
+  private async getFolderMetadata(folderId: string): Promise<QuipFolder> {
+    // Check cache first for performance
+    if (this.folderCache.has(folderId)) {
+      return this.folderCache.get(folderId)!;
+    }
+
+    // Call Quip API to fetch folder metadata
+    const folderResponse = await this.apiClient.getFolderContents(folderId);
+    if (!folderResponse.success) {
+      throw new Error(`Failed to get folder metadata: ${folderResponse.error}`);
+    }
+
+    const folderData = folderResponse.data as any;
+    
+    // Extract folder title and metadata
+    const folder: QuipFolder = {
+      id: folderData.folder?.id || folderId,
+      title: folderData.folder?.title || folderData.title || folderId,
+      created_usec: folderData.folder?.created_usec || Date.now() * 1000,
+      updated_usec: folderData.folder?.updated_usec || Date.now() * 1000,
+      children: folderData.children || [],
+      member_ids: folderData.folder?.member_ids || []
+    };
+
+    // Cache the result
+    this.folderCache.set(folderId, folder);
+
+    return folder;
+  }
+
+  /**
    * Parse folder API response format
    */
   private async parseFolderResponse(response: any): Promise<{ documents: QuipDocument[], folders: QuipFolder[] }> {
@@ -527,15 +561,22 @@ export class DocumentDiscovery {
             });
           }
         } else if (child.folder_id) {
-          // This is a subfolder - create a minimal folder object
-          folders.push({
-            id: child.folder_id,
-            title: 'Subfolder', // We could fetch folder metadata too, but it's less critical
-            created_usec: Date.now() * 1000,
-            updated_usec: Date.now() * 1000,
-            children: [],
-            member_ids: []
-          });
+          // This is a subfolder - fetch actual folder metadata
+          try {
+            const folderMetadata = await this.getFolderMetadata(child.folder_id);
+            folders.push(folderMetadata);
+          } catch (error) {
+            // Fallback to folder ID if metadata fetch fails
+            this.logger.warn(`Failed to get metadata for folder ${child.folder_id}, using ID as name:`, error);
+            folders.push({
+              id: child.folder_id,
+              title: child.folder_id,
+              created_usec: Date.now() * 1000,
+              updated_usec: Date.now() * 1000,
+              children: [],
+              member_ids: []
+            });
+          }
         }
       }
     }

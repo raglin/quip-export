@@ -70,7 +70,9 @@ describe('PathUtils', () => {
     it('should sanitize unsafe characters in path segments', () => {
       const result = PathUtils.createSafeRelativePath('Private/Projects<>:|?*/Important');
       
-      expect(result).toBe(`Private${require('path').sep}Projects______${require('path').sep}Important`);
+      // Characters are replaced: < > : | ? * / → _ _ - _ _ _ -
+      // After collapsing consecutive separators: Projects-
+      expect(result).toBe(`Private${require('path').sep}Projects-${require('path').sep}Important`);
     });
 
     it('should handle multiple slashes', () => {
@@ -233,9 +235,11 @@ describe('PathUtils', () => {
     it('should sanitize invalid characters with format context', () => {
       const result = PathUtils.sanitizeFileNameEnhanced('test<>:|?*file', 'pdf');
       
-      expect(result.sanitized).toBe('test_file.pdf');
+      // Colons become hyphens, other reserved chars become underscores, then consecutive separators collapse
+      expect(result.sanitized).toBe('test-file.pdf');
       expect(result.changed).toBe(true);
-      expect(result.originalUnsafeChars).toEqual(['<', '>', ':', '|', '?', '*']);
+      expect(result.originalUnsafeChars).toEqual(expect.arrayContaining(['<', '>', ':', '|', '?', '*']));
+      expect(result.originalUnsafeChars?.length).toBe(6);
     });
 
     it('should handle multiple consecutive underscores', () => {

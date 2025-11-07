@@ -196,7 +196,8 @@ export class FolderStructureMapper {
     const fileName = baseTitle + extension;
     
     if (this.config.sanitizeFileNames) {
-      return PathUtils.sanitizeFileName(fileName).sanitized;
+      // Don't pass format to avoid extension replacement - filename already has correct extension
+      return PathUtils.sanitizeFileNameEnhanced(fileName).sanitized;
     }
     
     return fileName;

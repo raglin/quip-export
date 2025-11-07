@@ -1,7 +1,6 @@
 ---
 inclusion: always
 ---
-
 # Build & Test Verification Requirements
 
 ## NON-NEGOTIABLE REQUIREMENTS

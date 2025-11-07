@@ -73,11 +73,20 @@ export class FileWriter {
       
       // Sanitize filename if configured
       if (this.config.sanitizeFileNames) {
-        const sanitized = PathUtils.sanitizeFileName(fileName);
+        const sanitized = PathUtils.sanitizeFileNameEnhanced(fileName, options.exportFormat, options.documentType);
         fileName = sanitized.sanitized;
         
+        // INFO-level logging for significant filename changes
+        if (sanitized.significantChange) {
+          this.logger.info(`Significant filename change detected: "${options.fileName}" -> "${fileName}"`);
+        }
+        
+        // DEBUG-level logging for all sanitization operations
         if (sanitized.changed) {
-          this.logger.debug(`Sanitized filename: "${options.fileName}" -> "${fileName}"`);
+          const unsafeCharsMsg = sanitized.originalUnsafeChars 
+            ? ` (unsafe characters: ${sanitized.originalUnsafeChars.map(c => `'${c}'`).join(', ')})` 
+            : '';
+          this.logger.debug(`Sanitized filename: "${options.fileName}" -> "${fileName}"${unsafeCharsMsg}`);
         }
       }
 
@@ -402,7 +411,8 @@ export class FileWriter {
 
     // Sanitize if configured
     if (this.config.sanitizeFileNames) {
-      return PathUtils.sanitizeFileName(fileName).sanitized;
+      // Don't pass format to avoid extension replacement - filename already has correct extension
+      return PathUtils.sanitizeFileNameEnhanced(fileName).sanitized;
     }
 
     return fileName;
@@ -432,7 +442,22 @@ export class FileWriter {
 
     // Enhanced sanitization with format-specific handling
     if (this.config.sanitizeFileNames) {
-      return PathUtils.sanitizeFileNameEnhanced(fileName, format, documentType).sanitized;
+      const sanitizationResult = PathUtils.sanitizeFileNameEnhanced(fileName, format, documentType);
+      
+      // INFO-level logging for significant filename changes
+      if (sanitizationResult.significantChange) {
+        this.logger.info(`Significant filename change detected: "${fileName}" -> "${sanitizationResult.sanitized}"`);
+      }
+      
+      // DEBUG-level logging for all sanitization operations
+      if (sanitizationResult.changed) {
+        const unsafeCharsMsg = sanitizationResult.originalUnsafeChars 
+          ? ` (unsafe characters: ${sanitizationResult.originalUnsafeChars.map(c => `'${c}'`).join(', ')})` 
+          : '';
+        this.logger.debug(`Sanitized filename: "${fileName}" -> "${sanitizationResult.sanitized}"${unsafeCharsMsg}`);
+      }
+      
+      return sanitizationResult.sanitized;
     }
 
     return fileName;

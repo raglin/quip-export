@@ -134,7 +134,7 @@ export class DirectoryManager {
    */
   async createFolderTypeDirectory(folderType: string): Promise<DirectoryCreateResult> {
     try {
-      const sanitizedType = PathUtils.sanitizeFileName(folderType).sanitized;
+      const sanitizedType = PathUtils.sanitizeFilenameComponent(folderType);
       const targetPath = path.join(this.config.baseOutputPath, sanitizedType);
 
       this.logger.debug(`Creating folder type directory: ${folderType} -> ${targetPath}`);

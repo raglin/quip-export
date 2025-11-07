@@ -133,7 +133,9 @@ describe('FolderStructureMapper', () => {
       const result = await folderMapper.mapQuipFolder(folder);
 
       expect(result.success).toBe(true);
-      expect(result.localPath).toBe(path.join(tempDir, 'Private', 'Unsafe______Folder'));
+      // Unsafe characters are replaced: < > : | ? * → _ _ - _ _ _
+      // After collapsing consecutive separators: Unsafe-Folder
+      expect(result.localPath).toBe(path.join(tempDir, 'Private', 'Unsafe-Folder'));
     });
 
     it('should cache folder mappings', async () => {
@@ -295,7 +297,7 @@ describe('FolderStructureMapper', () => {
         'docx'
       );
 
-      expect(mapping.fileName).toBe('Unsafe______Document.docx');
+      expect(mapping.fileName).toBe('Unsafe-Document.docx'); // Consecutive separators collapsed
     });
 
     it('should handle empty document titles', () => {

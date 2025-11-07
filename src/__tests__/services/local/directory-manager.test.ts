@@ -117,8 +117,9 @@ describe('DirectoryManager', () => {
       
       expect(result.success).toBe(true);
       
-      // Unsafe characters should be replaced with underscores
-      const expectedPath = path.join(tempDir, 'Private', 'Projects______', 'Important');
+      // Unsafe characters are replaced: < > : | ? * / → _ _ - _ _ _ -
+      // After collapsing consecutive separators: Projects-
+      const expectedPath = path.join(tempDir, 'Private', 'Projects-', 'Important');
       expect(result.directoryPath).toBe(expectedPath);
       
       const stats = await fs.stat(expectedPath);
@@ -160,7 +161,7 @@ describe('DirectoryManager', () => {
       
       expect(result.success).toBe(true);
       
-      const expectedPath = path.join(tempDir, 'Shared__Folder');
+      const expectedPath = path.join(tempDir, 'Shared_Folder'); // Consecutive separators collapsed
       expect(result.directoryPath).toBe(expectedPath);
     });
   });

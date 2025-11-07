@@ -10,6 +10,11 @@ const INVALID_FILENAME_CHARS = /[<>:"|?*\x00-\x1f]/g;
 const INVALID_FILENAME_CHARS_WINDOWS = /[<>:"|?*\x00-\x1f\\\/]/g;
 
 /**
+ * Comprehensive filesystem reserved characters for all platforms
+ */
+const FILESYSTEM_RESERVED_CHARS = /[<>:"|?*\/\\\x00-\x1f]/g;
+
+/**
  * Reserved file names on Windows
  */
 const WINDOWS_RESERVED_NAMES = [
@@ -85,7 +90,7 @@ export class PathUtils {
   static sanitizeDirectoryPath(dirPath: string): string {
     return dirPath
       .split(path.sep)
-      .map(segment => this.sanitizeFileName(segment).sanitized)
+      .map(segment => this.sanitizeFilenameComponent(segment))
       .join(path.sep);
   }
 
@@ -103,13 +108,90 @@ export class PathUtils {
     // Split by forward slashes (Quip uses forward slashes)
     const segments = normalized.split('/');
     
-    // Sanitize each segment
+    // Sanitize each segment using enhanced sanitization
+    // This ensures forward slashes within folder names are replaced with hyphens
     const safeSegments = segments.map(segment => {
-      const sanitized = this.sanitizeFileName(segment).sanitized;
+      const sanitized = this.sanitizeFilenameComponent(segment);
       return sanitized || 'Unnamed';
     });
 
     return safeSegments.join(path.sep);
+  }
+
+  /**
+   * Sanitize individual path component (folder name)
+   * Ensures forward slashes in folder names don't create unintended nesting
+   */
+  static sanitizeFilenameComponent(component: string): string {
+    const unsafeChars: string[] = [];
+    let sanitized = component;
+
+    // Character-specific replacement strategy for folder names
+    // Step 1: Replace forward slashes with hyphens
+    sanitized = sanitized.replace(/\//g, (match) => {
+      unsafeChars.push(match);
+      return '-';
+    });
+
+    // Step 2: Replace backslashes with hyphens
+    sanitized = sanitized.replace(/\\/g, (match) => {
+      unsafeChars.push(match);
+      return '-';
+    });
+
+    // Step 3: Replace colons with hyphens
+    sanitized = sanitized.replace(/:/g, (match) => {
+      unsafeChars.push(match);
+      return '-';
+    });
+
+    // Step 4: Replace other reserved characters with underscores
+    sanitized = sanitized.replace(/[<>"|?*\x00-\x1f]/g, (match) => {
+      unsafeChars.push(match);
+      return '_';
+    });
+
+    // Step 5: Collapse multiple consecutive separators
+    sanitized = sanitized.replace(/[-_]+/g, (match) => {
+      if (match.match(/^-+$/)) return '-';
+      if (match.match(/^_+$/)) return '_';
+      return '-';
+    });
+
+    // Step 6: Remove leading separators
+    sanitized = sanitized.replace(/^[-_]+/g, '');
+    
+    // Remove leading/trailing dots and spaces (but not hyphens/underscores yet)
+    sanitized = sanitized.replace(/^[.\s]+/g, '');
+    sanitized = sanitized.replace(/[.\s]+$/g, '');
+    
+    // Step 7: Remove trailing separators only if followed by dots/spaces originally
+    // For folder names, we keep trailing separators that resulted from sanitization
+    // to maintain distinction between "Projects" and "Projects<>:|?*"
+    // Only remove if the component would be empty otherwise
+    if (sanitized.match(/^[-_]+$/)) {
+      sanitized = '';
+    }
+
+    // Handle Windows reserved names
+    if (process.platform === 'win32' && sanitized) {
+      const upperName = sanitized.toUpperCase();
+      if (WINDOWS_RESERVED_NAMES.includes(upperName)) {
+        sanitized = `_${sanitized}`;
+      }
+    }
+
+    // Ensure component is not empty
+    if (!sanitized || sanitized.length === 0) {
+      return 'Unnamed';
+    }
+
+    // Truncate if too long (folder names should also respect length limits)
+    if (sanitized.length > MAX_FILENAME_LENGTH) {
+      sanitized = sanitized.substring(0, MAX_FILENAME_LENGTH);
+    }
+
+    return sanitized;
   }
 
   /**
@@ -228,13 +310,51 @@ export class PathUtils {
     let sanitized = fileName;
     const unsafeChars: string[] = [];
 
-    // Remove or replace invalid characters
-    const invalidChars = process.platform === 'win32' ? INVALID_FILENAME_CHARS_WINDOWS : INVALID_FILENAME_CHARS;
-    
-    sanitized = sanitized.replace(invalidChars, (match) => {
+    // Character-specific replacement strategy
+    // Step 1: Replace forward slashes with hyphens
+    sanitized = sanitized.replace(/\//g, (match) => {
+      unsafeChars.push(match);
+      return '-';
+    });
+
+    // Step 2: Replace backslashes with hyphens
+    sanitized = sanitized.replace(/\\/g, (match) => {
+      unsafeChars.push(match);
+      return '-';
+    });
+
+    // Step 3: Replace colons with hyphens
+    sanitized = sanitized.replace(/:/g, (match) => {
+      unsafeChars.push(match);
+      return '-';
+    });
+
+    // Step 4: Replace other reserved characters with underscores
+    sanitized = sanitized.replace(/[<>"|?*\x00-\x1f]/g, (match) => {
       unsafeChars.push(match);
       return '_';
     });
+
+    // Step 5: Collapse multiple consecutive separators (hyphens and underscores)
+    sanitized = sanitized.replace(/[-_]+/g, (match) => {
+      // If it's all hyphens, return single hyphen
+      if (match.match(/^-+$/)) return '-';
+      // If it's all underscores, return single underscore
+      if (match.match(/^_+$/)) return '_';
+      // If mixed, prefer hyphen
+      return '-';
+    });
+
+    // Step 6: Remove leading and trailing separators
+    // First, extract extension if present
+    const tempExt = path.extname(sanitized);
+    const tempName = tempExt ? sanitized.slice(0, -tempExt.length) : sanitized;
+    
+    // Remove leading and trailing separators from the name part
+    const cleanedName = tempName.replace(/^[-_]+|[-_]+$/g, '');
+    
+    // Reconstruct with extension
+    sanitized = cleanedName + tempExt;
 
     // Handle Windows reserved names
     if (process.platform === 'win32') {
@@ -247,17 +367,7 @@ export class PathUtils {
     // Remove leading/trailing dots and spaces
     sanitized = sanitized.replace(/^[.\s]+|[.\s]+$/g, '');
 
-    // Replace multiple consecutive underscores with single underscore
-    sanitized = sanitized.replace(/_+/g, '_');
-
-    // Remove trailing underscores before extension
-    const ext = path.extname(sanitized);
-    const nameWithoutExt = path.parse(sanitized).name;
-    if (nameWithoutExt.endsWith('_')) {
-      sanitized = nameWithoutExt.slice(0, -1) + ext;
-    }
-
-    // Ensure filename is not empty
+    // Step 7: Handle empty filenames after sanitization
     if (!sanitized || sanitized.length === 0) {
       sanitized = format ? `untitled${this.getFileExtensionForFormat(format, documentType)}` : 'untitled';
     } else if (format) {
@@ -289,10 +399,17 @@ export class PathUtils {
       sanitized = nameOnly.substring(0, maxNameLength) + extension;
     }
 
+    // Calculate significant change (>30% of characters modified)
+    const originalLength = original.length;
+    const changedChars = unsafeChars.length;
+    const changePercentage = originalLength > 0 ? (changedChars / originalLength) * 100 : 0;
+    const significantChange = changePercentage > 30;
+
     return {
       sanitized,
       changed: sanitized !== original,
-      originalUnsafeChars: unsafeChars.length > 0 ? [...new Set(unsafeChars)] : undefined
+      originalUnsafeChars: unsafeChars.length > 0 ? [...new Set(unsafeChars)] : undefined,
+      significantChange: significantChange ? true : undefined
     };
   }
 
@@ -354,5 +471,49 @@ export class PathUtils {
       
       return newFileName;
     }
+  }
+
+  /**
+   * Validate if a filename is safe for filesystem operations
+   * Checks for presence of reserved characters and length limits
+   * 
+   * @param fileName - The filename to validate
+   * @returns true if the filename is safe, false otherwise
+   */
+  static isFilenameSafe(fileName: string): boolean {
+    // Check for null or empty filename
+    if (!fileName || fileName.length === 0) {
+      return false;
+    }
+
+    // Check for null bytes
+    if (fileName.includes('\0')) {
+      return false;
+    }
+
+    // Check for reserved characters
+    if (FILESYSTEM_RESERVED_CHARS.test(fileName)) {
+      return false;
+    }
+
+    // Check filename length
+    if (fileName.length > MAX_FILENAME_LENGTH) {
+      return false;
+    }
+
+    // Check for Windows reserved names
+    if (process.platform === 'win32') {
+      const nameWithoutExt = path.parse(fileName).name.toUpperCase();
+      if (WINDOWS_RESERVED_NAMES.includes(nameWithoutExt)) {
+        return false;
+      }
+    }
+
+    // Check for leading/trailing dots or spaces
+    if (/^[.\s]+|[.\s]+$/.test(fileName)) {
+      return false;
+    }
+
+    return true;
   }
 }
