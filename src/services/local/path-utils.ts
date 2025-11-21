@@ -38,6 +38,43 @@ const MAX_FILENAME_LENGTH = 255;
 
 export class PathUtils {
   /**
+   * Convert Quip microsecond timestamp to formatted date string
+   * @param updated_usec - Quip timestamp in microseconds
+   * @param format - Date format pattern (e.g., "YYYY-MM-DD", "YYYY-DD-MM")
+   * @returns Formatted date string
+   */
+  static formatQuipDate(updated_usec: number, format: string = 'YYYY-MM-DD'): string {
+    // Convert microseconds to milliseconds
+    const milliseconds = updated_usec / 1000;
+    const date = new Date(milliseconds);
+    
+    // Extract date components
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    // Replace tokens in format string
+    return format
+      .replace('YYYY', String(year))
+      .replace('MM', month)
+      .replace('DD', day);
+  }
+
+  /**
+   * Validate date format pattern
+   * @param format - Date format pattern to validate
+   * @returns true if valid, false otherwise
+   */
+  static isValidDateFormat(format: string): boolean {
+    // Must contain all three components
+    const hasYear = format.includes('YYYY');
+    const hasMonth = format.includes('MM');
+    const hasDay = format.includes('DD');
+    
+    return hasYear && hasMonth && hasDay;
+  }
+
+  /**
    * Sanitize a filename to be safe across all operating systems
    */
   static sanitizeFileName(fileName: string): PathSanitizationResult {
@@ -310,6 +347,23 @@ export class PathUtils {
     let sanitized = fileName;
     const unsafeChars: string[] = [];
 
+    // Detect and preserve date prefix pattern at start of filename (YYYY-MM-DD or similar)
+    const datePrefixPattern = /^(\d{4}[-\/]\d{2}[-\/]\d{2})\s+(.+)$/;
+    const datePrefixMatch = sanitized.match(datePrefixPattern);
+    let datePrefix = '';
+    let restOfFilename = sanitized;
+    
+    if (datePrefixMatch) {
+      datePrefix = datePrefixMatch[1];
+      restOfFilename = datePrefixMatch[2];
+      
+      // Normalize date prefix separators to hyphens for consistency
+      datePrefix = datePrefix.replace(/\//g, '-');
+    }
+
+    // Apply sanitization to the rest of the filename (excluding date prefix)
+    sanitized = restOfFilename;
+
     // Character-specific replacement strategy
     // Step 1: Replace forward slashes with hyphens
     sanitized = sanitized.replace(/\//g, (match) => {
@@ -355,6 +409,11 @@ export class PathUtils {
     
     // Reconstruct with extension
     sanitized = cleanedName + tempExt;
+    
+    // Reattach date prefix if it was present
+    if (datePrefix) {
+      sanitized = `${datePrefix} ${sanitized}`;
+    }
 
     // Handle Windows reserved names
     if (process.platform === 'win32') {

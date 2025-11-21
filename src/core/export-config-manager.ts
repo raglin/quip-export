@@ -22,6 +22,7 @@ export class ExportConfigManager implements IExportConfigValidator {
       preserveFolderStructure: DEFAULT_EXPORT_CONFIG.preserveFolderStructure,
       sanitizeFileNames: DEFAULT_EXPORT_CONFIG.sanitizeFileNames,
       conflictResolution: DEFAULT_EXPORT_CONFIG.conflictResolution,
+      datePrefix: DEFAULT_EXPORT_CONFIG.datePrefix,
     };
   }
 
@@ -49,6 +50,7 @@ export class ExportConfigManager implements IExportConfigValidator {
       preserveFolderStructure: defaultConfig.preserveFolderStructure,
       sanitizeFileNames: defaultConfig.sanitizeFileNames,
       conflictResolution: defaultConfig.conflictResolution,
+      datePrefix: defaultConfig.datePrefix,
     };
   }
 

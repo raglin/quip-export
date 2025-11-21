@@ -1,6 +1,70 @@
 import { PathUtils } from '../../../services/local/path-utils';
 
 describe('PathUtils', () => {
+  describe('formatQuipDate', () => {
+    it('should convert Quip microsecond timestamp to YYYY-MM-DD format', () => {
+      // Nov 20, 2024 00:00:00 UTC
+      const timestamp = 1732060800000000;
+      const result = PathUtils.formatQuipDate(timestamp);
+      
+      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+
+    it('should support custom date format patterns', () => {
+      const timestamp = 1732060800000000; // Nov 20, 2024
+      
+      const result1 = PathUtils.formatQuipDate(timestamp, 'YYYY-MM-DD');
+      const result2 = PathUtils.formatQuipDate(timestamp, 'DD-MM-YYYY');
+      const result3 = PathUtils.formatQuipDate(timestamp, 'MM/DD/YYYY');
+      
+      expect(result1).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(result2).toMatch(/^\d{2}-\d{2}-\d{4}$/);
+      expect(result3).toMatch(/^\d{2}\/\d{2}\/\d{4}$/);
+    });
+
+    it('should handle various timestamps correctly', () => {
+      // Jan 1, 2021 00:00:00 UTC
+      const timestamp1 = 1609459200000000;
+      const result1 = PathUtils.formatQuipDate(timestamp1);
+      
+      expect(result1).toMatch(/^2021-01-01$/);
+      
+      // Dec 31, 2023 00:00:00 UTC
+      const timestamp2 = 1703980800000000;
+      const result2 = PathUtils.formatQuipDate(timestamp2);
+      
+      expect(result2).toMatch(/^2023-12-31$/);
+    });
+
+    it('should default to YYYY-MM-DD format when no format specified', () => {
+      const timestamp = 1732060800000000;
+      const result = PathUtils.formatQuipDate(timestamp);
+      
+      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+  });
+
+  describe('isValidDateFormat', () => {
+    it('should validate format patterns with all required components', () => {
+      expect(PathUtils.isValidDateFormat('YYYY-MM-DD')).toBe(true);
+      expect(PathUtils.isValidDateFormat('DD-MM-YYYY')).toBe(true);
+      expect(PathUtils.isValidDateFormat('MM/DD/YYYY')).toBe(true);
+      expect(PathUtils.isValidDateFormat('YYYY MM DD')).toBe(true);
+    });
+
+    it('should reject format patterns missing required components', () => {
+      expect(PathUtils.isValidDateFormat('YYYY-MM')).toBe(false);
+      expect(PathUtils.isValidDateFormat('MM-DD')).toBe(false);
+      expect(PathUtils.isValidDateFormat('YYYY')).toBe(false);
+      expect(PathUtils.isValidDateFormat('')).toBe(false);
+    });
+
+    it('should reject format patterns with only some components', () => {
+      expect(PathUtils.isValidDateFormat('YYYY-DD')).toBe(false);
+      expect(PathUtils.isValidDateFormat('MM-YYYY')).toBe(false);
+    });
+  });
+
   describe('sanitizeFileName', () => {
     it('should sanitize invalid characters', () => {
       const result = PathUtils.sanitizeFileName('test<>:|?*file.docx');
@@ -232,6 +296,55 @@ describe('PathUtils', () => {
   });
 
   describe('sanitizeFileNameEnhanced', () => {
+    it('should preserve date prefix pattern at start of filename', () => {
+      const result = PathUtils.sanitizeFileNameEnhanced('2024-11-20 Test Document', 'docx');
+      
+      expect(result.sanitized).toBe('2024-11-20 Test Document.docx');
+      expect(result.changed).toBe(true); // Changed because extension was added
+    });
+
+    it('should preserve date prefix with forward slashes and normalize to hyphens', () => {
+      const result = PathUtils.sanitizeFileNameEnhanced('2024/11/20 Test Document', 'docx');
+      
+      expect(result.sanitized).toBe('2024-11-20 Test Document.docx');
+      expect(result.changed).toBe(true);
+    });
+
+    it('should preserve date prefix while sanitizing rest of filename', () => {
+      const result = PathUtils.sanitizeFileNameEnhanced('2024-11-20 Test<>:|?*Document', 'pdf');
+      
+      expect(result.sanitized).toBe('2024-11-20 Test-Document.pdf');
+      expect(result.changed).toBe(true);
+      expect(result.originalUnsafeChars).toEqual(expect.arrayContaining(['<', '>', ':', '|', '?', '*']));
+    });
+
+    it('should not treat date-like patterns in middle of filename as date prefix', () => {
+      const result = PathUtils.sanitizeFileNameEnhanced('Document 2024-11-20 Version', 'docx');
+      
+      // Date pattern in middle should not be treated specially
+      expect(result.sanitized).toBe('Document 2024-11-20 Version.docx');
+      expect(result.changed).toBe(true);
+    });
+
+    it('should handle date prefix with various separators', () => {
+      const result1 = PathUtils.sanitizeFileNameEnhanced('2024-11-20 Document', 'docx');
+      const result2 = PathUtils.sanitizeFileNameEnhanced('2024/11/20 Document', 'docx');
+      
+      // Both should normalize to hyphen-separated format
+      expect(result1.sanitized).toBe('2024-11-20 Document.docx');
+      expect(result2.sanitized).toBe('2024-11-20 Document.docx');
+    });
+
+    it('should preserve date prefix with long filename and truncate correctly', () => {
+      const longTitle = 'a'.repeat(300);
+      const result = PathUtils.sanitizeFileNameEnhanced(`2024-11-20 ${longTitle}`, 'docx');
+      
+      expect(result.sanitized.length).toBeLessThanOrEqual(255);
+      expect(result.sanitized.startsWith('2024-11-20 ')).toBe(true);
+      expect(result.sanitized.endsWith('.docx')).toBe(true);
+      expect(result.changed).toBe(true);
+    });
+
     it('should sanitize invalid characters with format context', () => {
       const result = PathUtils.sanitizeFileNameEnhanced('test<>:|?*file', 'pdf');
       

@@ -15,6 +15,11 @@ export interface FileWriteOptions {
   documentType?: string;
   exportFormat?: 'docx' | 'html' | 'xlsx' | 'markdown';
   overwrite?: boolean;
+  updatedDate?: number;
+  datePrefixConfig?: {
+    enabled: boolean;
+    format: string;
+  };
 }
 
 export interface FormatFileWriteOptions extends FileWriteOptions {
@@ -62,6 +67,13 @@ export class FileWriter {
       }
       // Create proper filename with extension
       let fileName = options.fileName;
+      
+      // Apply date prefix if enabled and timestamp provided
+      if (options.updatedDate && options.datePrefixConfig?.enabled) {
+        const dateFormat = options.datePrefixConfig.format || 'YYYY-MM-DD';
+        const datePrefix = PathUtils.formatQuipDate(options.updatedDate, dateFormat);
+        fileName = `${datePrefix} ${fileName}`;
+      }
       
       // Ensure file has proper extension based on export format
       if (options.exportFormat) {
@@ -360,11 +372,13 @@ export class FileWriter {
         targetDirectory = formatDirResult.directoryPath!;
       }
 
-      // Generate format-specific filename
+      // Generate format-specific filename with date prefix
       const fileName = this.createSafeFileNameForFormat(
         options.fileName,
         options.format,
-        options.documentType
+        options.documentType,
+        options.updatedDate,
+        options.datePrefixConfig
       );
 
       // Write the document
@@ -396,12 +410,26 @@ export class FileWriter {
   createSafeFileName(
     documentTitle: string,
     documentType: string,
-    exportFormat: 'docx' | 'html' | 'xlsx'
+    exportFormat: 'docx' | 'html' | 'xlsx',
+    updatedDate?: number,
+    datePrefixConfig?: { enabled: boolean; format: string }
   ): string {
     // Use document title or fallback to 'Untitled'
-    const baseTitle = documentTitle && documentTitle.trim() 
+    let baseTitle = documentTitle && documentTitle.trim() 
       ? documentTitle.trim() 
       : 'Untitled';
+
+    // Apply date prefix if enabled and timestamp provided
+    if (updatedDate && datePrefixConfig?.enabled) {
+      try {
+        const dateFormat = datePrefixConfig.format || 'YYYY-MM-DD';
+        const datePrefix = PathUtils.formatQuipDate(updatedDate, dateFormat);
+        baseTitle = `${datePrefix} ${baseTitle}`;
+      } catch (error) {
+        this.logger.warn(`Failed to format date for document "${documentTitle}": ${error instanceof Error ? error.message : String(error)}`);
+        // Continue without date prefix
+      }
+    }
 
     // Get appropriate file extension
     const extension = PathUtils.getFileExtension(documentType, exportFormat);
@@ -424,12 +452,26 @@ export class FileWriter {
   createSafeFileNameForFormat(
     documentTitle: string,
     format: string,
-    documentType?: string
+    documentType?: string,
+    updatedDate?: number,
+    datePrefixConfig?: { enabled: boolean; format: string }
   ): string {
     // Use document title or fallback to 'Untitled'
-    const baseTitle = documentTitle && documentTitle.trim() 
+    let baseTitle = documentTitle && documentTitle.trim() 
       ? documentTitle.trim() 
       : 'Untitled';
+
+    // Apply date prefix if enabled and timestamp provided
+    if (updatedDate && datePrefixConfig?.enabled) {
+      try {
+        const dateFormat = datePrefixConfig.format || 'YYYY-MM-DD';
+        const datePrefix = PathUtils.formatQuipDate(updatedDate, dateFormat);
+        baseTitle = `${datePrefix} ${baseTitle}`;
+      } catch (error) {
+        this.logger.warn(`Failed to format date for document "${documentTitle}": ${error instanceof Error ? error.message : String(error)}`);
+        // Continue without date prefix
+      }
+    }
 
     // Get appropriate file extension for the format
     const extension = PathUtils.getFileExtensionForFormat(format, documentType);

@@ -12,6 +12,10 @@ export interface ExportOptions {
   formatSpecificOptions?: {
     markdown?: MarkdownOptions;
   };
+  datePrefixConfig?: {
+    enabled: boolean;
+    format: string;
+  };
 }
 
 export interface MarkdownOptions {
@@ -107,7 +111,16 @@ export class DocumentExporter {
   ): Promise<ExportResult> {
     const preferredFormat = options.preferredFormat || 'native';
     
-    this.logger.info(`Exporting document: ${document.title} (${document.id}) in format: ${preferredFormat}`);
+    // Build display name with date prefix if applicable
+    let displayName = document.title;
+    if (document.updated_usec && options.datePrefixConfig?.enabled) {
+      const { PathUtils } = require('../local/path-utils');
+      const dateFormat = options.datePrefixConfig.format || 'YYYY-MM-DD';
+      const datePrefix = PathUtils.formatQuipDate(document.updated_usec, dateFormat);
+      displayName = `${datePrefix} ${displayName}`;
+    }
+    
+    this.logger.info(`Exporting document: ${displayName} (${document.id}) in format: ${preferredFormat}`);
 
     try {
       // Validate format compatibility first
@@ -150,7 +163,16 @@ export class DocumentExporter {
       }
 
       if (exportResult.success) {
-        this.logger.info(`Successfully exported ${document.title} as ${exportResult.format.toUpperCase()}`);
+        // Build display name with date prefix if applicable
+        let displayName = document.title;
+        if (document.updated_usec && options.datePrefixConfig?.enabled) {
+          const { PathUtils } = require('../local/path-utils');
+          const dateFormat = options.datePrefixConfig.format || 'YYYY-MM-DD';
+          const datePrefix = PathUtils.formatQuipDate(document.updated_usec, dateFormat);
+          displayName = `${datePrefix} ${displayName}`;
+        }
+        
+        this.logger.info(`Successfully exported ${displayName} as ${exportResult.format.toUpperCase()}`);
         
         return {
           success: true,

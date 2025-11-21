@@ -11,6 +11,10 @@ export const DEFAULT_EXPORT_CONFIG = {
   preserveFolderStructure: true,
   sanitizeFileNames: true,
   conflictResolution: 'number' as const,
+  datePrefix: {
+    enabled: true,
+    format: 'YYYY-MM-DD',
+  },
 };
 
 // Legacy config for backward compatibility

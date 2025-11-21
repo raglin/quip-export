@@ -132,6 +132,7 @@ function displayDocumentsAsTable(documents: any[], verbose: boolean = false): vo
         'Title'.padEnd(40) +
         'Type'.padEnd(12) +
         'Created'.padEnd(12) +
+        'Updated'.padEnd(12) +
         'Folder'.padEnd(25) +
         'Shared'.padEnd(8)
     );
@@ -147,6 +148,7 @@ function displayDocumentsAsTable(documents: any[], verbose: boolean = false): vo
           truncateText(doc.title, 39).padEnd(40) +
           (doc.type || 'DOCUMENT').padEnd(12) +
           formatDate(doc.created_usec || Date.now() * 1000).padEnd(12) +
+          formatDate(doc.updated_usec || doc.created_usec || Date.now() * 1000).padEnd(12) +
           truncateText(folderPath, 24).padEnd(25) +
           (isShared ? 'Yes' : 'No').padEnd(8)
       );
@@ -154,7 +156,7 @@ function displayDocumentsAsTable(documents: any[], verbose: boolean = false): vo
   } else {
     // Compact table format
     console.log(
-      'Title'.padEnd(50) + 'Type'.padEnd(12) + 'Created'.padEnd(12) + 'Folder'.padEnd(30)
+      'Title'.padEnd(50) + 'Type'.padEnd(12) + 'Created'.padEnd(12) + 'Updated'.padEnd(12) + 'Folder'.padEnd(30)
     );
     console.log('─'.repeat(120));
 
@@ -166,6 +168,7 @@ function displayDocumentsAsTable(documents: any[], verbose: boolean = false): vo
         truncateText(doc.title, 49).padEnd(50) +
           (doc.type || 'DOCUMENT').padEnd(12) +
           formatDate(doc.created_usec || Date.now() * 1000).padEnd(12) +
+          formatDate(doc.updated_usec || doc.created_usec || Date.now() * 1000).padEnd(12) +
           truncateText(folderPath, 29).padEnd(30)
       );
     });
@@ -206,7 +209,7 @@ function displayDocumentsAsCsv(documents: any[], verbose: boolean = false): void
       );
     });
   } else {
-    console.log('Title,Type,Created,Folder');
+    console.log('Title,Type,Created,Updated,Folder');
 
     documents.forEach((item) => {
       const doc = isDocumentWithPath ? item.document : item;
@@ -217,6 +220,7 @@ function displayDocumentsAsCsv(documents: any[], verbose: boolean = false): void
           `"${doc.title.replace(/"/g, '""')}"`,
           `"${doc.type}"`,
           `"${formatDate(doc.created_usec)}"`,
+          `"${formatDate(doc.updated_usec || doc.created_usec)}"`,
           `"${folderPath.replace(/"/g, '""')}"`,
         ].join(',')
       );
@@ -351,6 +355,16 @@ function migrateConfiguration(config: any): any {
   if (!migratedConfig.formatSpecificOptions && !migratedConfig.export?.formatSpecificOptions) {
     const targetConfig = migratedConfig.export || migratedConfig;
     targetConfig.formatSpecificOptions = {};
+    migrated = true;
+  }
+
+  // Add default date prefix settings if not present
+  if (!migratedConfig.datePrefix && !migratedConfig.export?.datePrefix) {
+    const targetConfig = migratedConfig.export || migratedConfig;
+    targetConfig.datePrefix = {
+      enabled: true,
+      format: 'YYYY-MM-DD',
+    };
     migrated = true;
   }
 
@@ -1040,6 +1054,65 @@ exportCommand
       );
       const maxDocuments = maxDocumentsInput ? parseInt(maxDocumentsInput) : undefined;
 
+      // Date prefix configuration
+      console.log('\n📅 Date Prefix Configuration:');
+      console.log('Add date prefix to exported filenames for chronological organization.');
+      console.log('Example: "2024-11-20 Document Title.docx"');
+      console.log('');
+      
+      const enableDatePrefix = await promptUser(
+        'Enable date prefix for filenames? (y/n, default: y): '
+      );
+      const datePrefixEnabled = 
+        enableDatePrefix.toLowerCase() !== 'n' && enableDatePrefix.toLowerCase() !== 'no';
+
+      let datePrefixFormat = 'YYYY-MM-DD';
+      if (datePrefixEnabled) {
+        console.log('\n📋 Date Format Options:');
+        console.log('  1. YYYY-MM-DD (e.g., 2024-11-20) - ISO format, sortable');
+        console.log('  2. YYYY-DD-MM (e.g., 2024-20-11)');
+        console.log('  3. MM-DD-YYYY (e.g., 11-20-2024) - US format');
+        console.log('  4. DD-MM-YYYY (e.g., 20-11-2024) - European format');
+        console.log('  5. Custom format (enter your own pattern)');
+        console.log('');
+        
+        const formatChoice = await promptUser(
+          'Choose date format (1-5, default: 1): '
+        );
+        
+        switch (formatChoice) {
+          case '2':
+            datePrefixFormat = 'YYYY-DD-MM';
+            break;
+          case '3':
+            datePrefixFormat = 'MM-DD-YYYY';
+            break;
+          case '4':
+            datePrefixFormat = 'DD-MM-YYYY';
+            break;
+          case '5':
+            const customFormat = await promptUser(
+              'Enter custom format (use YYYY, MM, DD tokens): '
+            );
+            if (customFormat.trim()) {
+              datePrefixFormat = customFormat.trim();
+            }
+            break;
+          case '1':
+          default:
+            datePrefixFormat = 'YYYY-MM-DD';
+            break;
+        }
+        
+        // Validate date format
+        const { PathUtils } = await import('../services/local/path-utils');
+        if (!PathUtils.isValidDateFormat(datePrefixFormat)) {
+          console.log('⚠️  Invalid date format pattern. Must contain YYYY, MM, and DD tokens.');
+          console.log('   Falling back to default format: YYYY-MM-DD');
+          datePrefixFormat = 'YYYY-MM-DD';
+        }
+      }
+
       // Build configuration object, preserving existing auth config
       const exportConfig = {
         // Preserve existing authentication configuration
@@ -1055,6 +1128,10 @@ exportCommand
         rateLimitDelay: Math.max(100, rateLimitDelay),
         retryAttempts: Math.max(1, Math.min(10, retryAttempts)),
         maxDocuments,
+        datePrefix: {
+          enabled: datePrefixEnabled,
+          format: datePrefixFormat,
+        },
         createdAt: config.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -1088,6 +1165,10 @@ exportCommand
       }
       console.log(`   Include Shared: ${exportConfig.includeSharedDocuments ? 'Yes' : 'No'}`);
       console.log(`   Preserve Folders: ${exportConfig.preserveFolderStructure ? 'Yes' : 'No'}`);
+      console.log(`   Date Prefix: ${exportConfig.datePrefix?.enabled ? 'Enabled' : 'Disabled'}`);
+      if (exportConfig.datePrefix?.enabled) {
+        console.log(`   Date Format: ${exportConfig.datePrefix.format}`);
+      }
       console.log(`   Batch Size: ${exportConfig.batchSize} documents`);
       console.log(`   Rate Limit: ${exportConfig.rateLimitDelay}ms between requests`);
       console.log(`   Retry Attempts: ${exportConfig.retryAttempts}`);
@@ -1187,19 +1268,20 @@ exportCommand
         exportSettings.exportFormat || 'docx',
       ];
 
+      // Use command line limit for preview, or config maxDocuments if no limit specified
+      const previewLimit = parseInt(options.limit);
+      const effectiveLimit = previewLimit || exportSettings.maxDocuments;
+
       // Discover documents based on configuration
       const discovery = await quipService.discoverDocuments({
         includeShared: exportSettings.includeSharedDocuments,
         includeTemplates: false,
         includeDeleted: false,
-        maxDocuments: exportSettings.maxDocuments, // Pass the limit to optimize discovery
+        maxDocuments: effectiveLimit, // Use the effective limit to optimize discovery
       });
 
       const documentsToExport = discovery.documents;
-
-      // Apply preview limit
-      const previewLimit = parseInt(options.limit);
-      const previewDocuments = documentsToExport.slice(0, previewLimit);
+      const previewDocuments = documentsToExport;
 
       if (documentsToExport.length === 0) {
         console.log('📭 No documents found matching export criteria.');
@@ -1234,6 +1316,7 @@ exportCommand
         console.log(`${index + 1}. ${icon} ${doc.title}`);
         console.log(`   Type: ${doc.type}`);
         console.log(`   Folder: ${docWithPath.folderPath}`);
+        console.log(`   Updated: ${formatDate(doc.updated_usec || doc.created_usec)}`);
 
         // Show output paths for each format
         previewFormats.forEach((format: string, formatIndex: number) => {
@@ -1257,13 +1340,23 @@ exportCommand
             }
           }
 
+          // Apply date prefix to filename if enabled
+          let fileName = doc.title;
+          const datePrefixConfig = exportSettings.datePrefix;
+          if (datePrefixConfig?.enabled && doc.updated_usec) {
+            const { PathUtils } = require('../services/local/path-utils');
+            const dateFormat = datePrefixConfig.format || 'YYYY-MM-DD';
+            const datePrefix = PathUtils.formatQuipDate(doc.updated_usec, dateFormat);
+            fileName = `${datePrefix} ${fileName}`;
+          }
+
           let outputPath: string;
           if (previewFormats.length > 1 || exportSettings.useFormatDirectories) {
             // Multi-format: organize by format directories
-            outputPath = path.join(baseDir, format, folderPath, `${doc.title}.${fileExtension}`);
+            outputPath = path.join(baseDir, format, folderPath, `${fileName}.${fileExtension}`);
           } else {
             // Single format: direct to output directory
-            outputPath = path.join(baseDir, folderPath, `${doc.title}.${fileExtension}`);
+            outputPath = path.join(baseDir, folderPath, `${fileName}.${fileExtension}`);
           }
 
           const label = formatIndex === 0 ? 'Output:' : '      ';
@@ -1439,6 +1532,7 @@ exportCommand
         includeFolders: [], // Include all folders by default
         sanitizeFileNames: true,
         conflictResolution: 'number' as const,
+        datePrefix: exportSettings.datePrefix || { enabled: true, format: 'YYYY-MM-DD' },
       };
 
       if (options.dryRun) {

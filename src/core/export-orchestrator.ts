@@ -261,6 +261,7 @@ export class ExportOrchestrator {
         documentId: docWithPath.document.id,
         documentTitle: docWithPath.document.title,
         documentType: docWithPath.document.type,
+        documentUpdatedDate: docWithPath.document.updated_usec,
         folderPath: docWithPath.folderPath || 'Private',
         exportFormat: this.determineExportFormat(docWithPath.document.type, config.exportFormat),
         priority: index,
@@ -385,11 +386,17 @@ export class ExportOrchestrator {
         // Use circuit breaker for document export with multi-format support
         const exportResult = await this.circuitBreakerManager.execute('document-export', () =>
           this.documentExporter.exportDocument(
-            { id: task.documentId, title: task.documentTitle, type: task.documentType } as any,
+            { 
+              id: task.documentId, 
+              title: task.documentTitle, 
+              type: task.documentType,
+              updated_usec: task.documentUpdatedDate 
+            } as any,
             {
               preferredFormat: formats[0] as 'native' | 'html' | 'markdown',
               fallbackToHtml: true,
               includeMetadata: true,
+              datePrefixConfig: config.datePrefix,
             }
           )
         );
@@ -421,6 +428,8 @@ export class ExportOrchestrator {
             content: successfulFormat.content!,
             documentType: task.documentType,
             exportFormat: successfulFormat.format as 'docx' | 'html' | 'xlsx' | 'markdown',
+            updatedDate: successfulFormat.metadata?.updated_usec,
+            datePrefixConfig: config.datePrefix,
           })
         )) as FileWriteResult;
 

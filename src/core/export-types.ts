@@ -1,5 +1,10 @@
 // Export-specific types and interfaces
 
+export interface DatePrefixConfig {
+  enabled: boolean;
+  format: string;
+}
+
 export interface ExportState {
   sessionId: string;
   totalDocuments: number;
@@ -31,6 +36,7 @@ export interface ExportConfig {
   sanitizeFileNames: boolean;
   conflictResolution: 'number' | 'timestamp' | 'overwrite';
   useFormatDirectories?: boolean; // New option for format-based organization
+  datePrefix?: DatePrefixConfig;
 }
 
 export interface ExportError {
@@ -110,6 +116,7 @@ export interface DocumentExportTask {
   documentId: string;
   documentTitle: string;
   documentType: string;
+  documentUpdatedDate?: number; // Quip updated_usec timestamp
   folderPath: string;
   exportFormat: 'docx' | 'html' | 'xlsx' | 'markdown';
   exportFormats?: ('docx' | 'html' | 'xlsx' | 'markdown')[]; // Multi-format support

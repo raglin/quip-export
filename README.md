@@ -46,8 +46,19 @@ quip-export export configure
 quip-export export start
 ```
 
+## ✨ Key Features
+
+- **📅 Automatic Date Prefixing**: Exported filenames are automatically prefixed with the document's last updated date (e.g., `2024-11-20 Meeting Notes.docx`) for easy chronological organization
+- **🗂️ Folder Structure Preservation**: Maintains your Quip folder hierarchy in the local export
+- **📄 Multiple Export Formats**: Support for native (DOCX/XLSX), HTML, and Markdown formats
+- **🔄 Batch Processing**: Efficient bulk export with configurable batch sizes and rate limiting
+- **🔒 Secure Authentication**: Uses Quip Personal Access Tokens for secure API access
+- **⚡ Resume Capability**: Automatically resumes interrupted exports from where they left off
+- **🎯 Flexible Configuration**: Customizable export settings including date formats, output directories, and format-specific options
+
 ## 📋 Table of Contents
 
+- [Key Features](#key-features)
 - [Installation](#installation)
 - [Authentication Setup](#authentication-setup)
 - [Usage Guide](#usage-guide)
@@ -152,6 +163,15 @@ quip-export list --format csv
 quip-export list --limit 20
 ```
 
+The list command displays both created and updated dates for each document:
+
+```
+Title                                              Type        Created      Updated      Folder
+──────────────────────────────────────────────────────────────────────────────────────────────
+Meeting Notes                                      DOCUMENT    2024-01-15   2024-11-20   Private
+Project Proposal                                   DOCUMENT    2024-03-10   2024-10-05   Shared
+```
+
 ### Exporting Documents
 
 #### Basic Export Workflow
@@ -164,6 +184,22 @@ quip-export export preview
 
 # 3. Start the export
 quip-export export start
+```
+
+The preview command shows the exact filenames that will be created, including date prefixes:
+
+```
+1. 📄 Meeting Notes
+   Type: DOCUMENT
+   Folder: Private
+   Updated: 2024-11-20
+   Output: exported-documents/Private/2024-11-20 Meeting Notes.docx
+
+2. 📄 Project Proposal
+   Type: DOCUMENT
+   Folder: Shared
+   Updated: 2024-10-05
+   Output: exported-documents/Shared/2024-10-05 Project Proposal.docx
 ```
 
 ## ⚙️ Export Configuration
@@ -179,6 +215,7 @@ quip-export export configure
 This will prompt you for:
 - **Output Directory**: Where to save exported files (default: `./exported-documents`)
 - **Export Format**: Choose from native (DOCX/XLSX), HTML, or Markdown
+- **Date Prefix**: Enable/disable date prefixing and choose date format pattern
 - **Format-Specific Options**: Additional options for selected format (e.g., markdown image handling)
 - **Document Selection**: Include shared documents, preserve folder structure
 - **Performance Settings**: Batch size, rate limiting, retry attempts
@@ -197,6 +234,10 @@ The tool creates a `.export-config.json` file with your settings:
   "export": {
     "outputDirectory": "./exported-documents",
     "exportFormat": "native",
+    "datePrefix": {
+      "enabled": true,
+      "format": "YYYY-MM-DD"
+    },
     "formatSpecificOptions": {
       "markdown": {
         "imageHandling": "separate",
@@ -209,6 +250,70 @@ The tool creates a `.export-config.json` file with your settings:
     "batchSize": 10,
     "retryAttempts": 3,
     "rateLimitDelay": 1000
+  }
+}
+```
+
+### Date Prefix Configuration
+
+By default, exported filenames are automatically prefixed with the document's last updated date in ISO 8601 format (YYYY-MM-DD). This provides chronological organization and makes it easy to identify when documents were last modified.
+
+#### Date Prefix Options
+
+- **enabled** (boolean, default: `true`): Enable or disable date prefixing
+- **format** (string, default: `"YYYY-MM-DD"`): Date format pattern
+
+#### Supported Date Formats
+
+The date format pattern uses the following tokens:
+- `YYYY` - Four-digit year (e.g., 2024)
+- `MM` - Two-digit month (01-12)
+- `DD` - Two-digit day (01-31)
+
+Common format patterns:
+- `YYYY-MM-DD` - ISO 8601 format (default): `2024-11-20 Document Title.docx`
+- `YYYY-DD-MM` - Year-day-month format: `2024-20-11 Document Title.docx`
+- `MM-DD-YYYY` - US format: `11-20-2024 Document Title.docx`
+- `DD-MM-YYYY` - European format: `20-11-2024 Document Title.docx`
+
+#### Example Filenames
+
+With date prefixing enabled (default):
+```
+2024-11-20 Meeting Notes.docx
+2024-10-15 Project Proposal.docx
+2023-12-01 Annual Report.docx
+```
+
+Without date prefixing (disabled):
+```
+Meeting Notes.docx
+Project Proposal.docx
+Annual Report.docx
+```
+
+#### Configuring Date Prefix
+
+During interactive configuration:
+```bash
+quip-export export configure
+```
+
+You'll be prompted:
+```
+📅 Date Prefix Configuration:
+Enable date prefix for filenames? (y/n, default: y): y
+Date format (YYYY-MM-DD, YYYY-DD-MM, MM-DD-YYYY, DD-MM-YYYY, default: YYYY-MM-DD): YYYY-MM-DD
+```
+
+Or manually edit `.export-config.json`:
+```json
+{
+  "export": {
+    "datePrefix": {
+      "enabled": false,
+      "format": "YYYY-MM-DD"
+    }
   }
 }
 ```
@@ -228,27 +333,27 @@ Supported formats:
 
 ## 📁 Folder Structure
 
-The tool preserves your Quip folder organization in the local export:
+The tool preserves your Quip folder organization in the local export. By default, filenames are prefixed with the document's last updated date for easy chronological organization:
 
 ```
 my-quip-backup/
 ├── Private/
 │   ├── Meeting Notes/
-│   │   ├── Team Standup - 2024-01-15.docx
-│   │   └── Project Review.docx
+│   │   ├── 2024-01-15 Team Standup.docx
+│   │   └── 2024-03-20 Project Review.docx
 │   └── Personal Documents/
-│       └── My Ideas.docx
+│       └── 2024-02-10 My Ideas.docx
 ├── Shared/
 │   ├── Company Docs/
-│   │   ├── Employee Handbook.docx
-│   │   └── Policies.docx
+│   │   ├── 2024-11-01 Employee Handbook.docx
+│   │   └── 2024-10-15 Policies.docx
 │   └── Team Projects/
-│       └── Q4 Planning.docx
+│       └── 2024-11-20 Q4 Planning.docx
 ├── Starred/
-│   └── Important Reference.docx
+│   └── 2024-09-05 Important Reference.docx
 └── Archive/
     └── Old Projects/
-        └── Legacy Document.docx
+        └── 2023-12-01 Legacy Document.docx
 ```
 
 ### Folder Types
