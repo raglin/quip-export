@@ -386,11 +386,11 @@ export class ExportOrchestrator {
         // Use circuit breaker for document export with multi-format support
         const exportResult = await this.circuitBreakerManager.execute('document-export', () =>
           this.documentExporter.exportDocument(
-            { 
-              id: task.documentId, 
-              title: task.documentTitle, 
+            {
+              id: task.documentId,
+              title: task.documentTitle,
               type: task.documentType,
-              updated_usec: task.documentUpdatedDate 
+              updated_usec: task.documentUpdatedDate,
             } as any,
             {
               preferredFormat: formats[0] as 'native' | 'html' | 'markdown',

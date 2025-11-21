@@ -156,7 +156,11 @@ function displayDocumentsAsTable(documents: any[], verbose: boolean = false): vo
   } else {
     // Compact table format
     console.log(
-      'Title'.padEnd(50) + 'Type'.padEnd(12) + 'Created'.padEnd(12) + 'Updated'.padEnd(12) + 'Folder'.padEnd(30)
+      'Title'.padEnd(50) +
+        'Type'.padEnd(12) +
+        'Created'.padEnd(12) +
+        'Updated'.padEnd(12) +
+        'Folder'.padEnd(30)
     );
     console.log('─'.repeat(120));
 
@@ -1059,11 +1063,11 @@ exportCommand
       console.log('Add date prefix to exported filenames for chronological organization.');
       console.log('Example: "2024-11-20 Document Title.docx"');
       console.log('');
-      
+
       const enableDatePrefix = await promptUser(
         'Enable date prefix for filenames? (y/n, default: y): '
       );
-      const datePrefixEnabled = 
+      const datePrefixEnabled =
         enableDatePrefix.toLowerCase() !== 'n' && enableDatePrefix.toLowerCase() !== 'no';
 
       let datePrefixFormat = 'YYYY-MM-DD';
@@ -1075,11 +1079,9 @@ exportCommand
         console.log('  4. DD-MM-YYYY (e.g., 20-11-2024) - European format');
         console.log('  5. Custom format (enter your own pattern)');
         console.log('');
-        
-        const formatChoice = await promptUser(
-          'Choose date format (1-5, default: 1): '
-        );
-        
+
+        const formatChoice = await promptUser('Choose date format (1-5, default: 1): ');
+
         switch (formatChoice) {
           case '2':
             datePrefixFormat = 'YYYY-DD-MM';
@@ -1090,7 +1092,7 @@ exportCommand
           case '4':
             datePrefixFormat = 'DD-MM-YYYY';
             break;
-          case '5':
+          case '5': {
             const customFormat = await promptUser(
               'Enter custom format (use YYYY, MM, DD tokens): '
             );
@@ -1098,12 +1100,13 @@ exportCommand
               datePrefixFormat = customFormat.trim();
             }
             break;
+          }
           case '1':
           default:
             datePrefixFormat = 'YYYY-MM-DD';
             break;
         }
-        
+
         // Validate date format
         const { PathUtils } = await import('../services/local/path-utils');
         if (!PathUtils.isValidDateFormat(datePrefixFormat)) {
@@ -1344,6 +1347,7 @@ exportCommand
           let fileName = doc.title;
           const datePrefixConfig = exportSettings.datePrefix;
           if (datePrefixConfig?.enabled && doc.updated_usec) {
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
             const { PathUtils } = require('../services/local/path-utils');
             const dateFormat = datePrefixConfig.format || 'YYYY-MM-DD';
             const datePrefix = PathUtils.formatQuipDate(doc.updated_usec, dateFormat);
