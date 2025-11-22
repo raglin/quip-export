@@ -53,6 +53,14 @@ export class QuipService implements IQuipService {
   }
 
   /**
+   * Discover documents from a Quip URL
+   * Automatically determines if URL is a folder or document
+   */
+  async discoverFromUrl(url: string, filter?: DocumentFilter): Promise<DiscoveryResult> {
+    return this.documentDiscovery.discoverFromUrl(url, filter);
+  }
+
+  /**
    * Get a specific document by ID
    */
   async getDocument(documentId: string): Promise<QuipDocument> {

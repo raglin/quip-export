@@ -282,6 +282,13 @@ describe('DocumentDiscovery', () => {
         statusCode: 200,
       });
 
+      // Mock getDocumentMetadata for permission checking
+      mockApiClient.getDocumentMetadata.mockResolvedValue({
+        success: true,
+        data: mockDocument,
+        statusCode: 200,
+      });
+
       const result = await documentDiscovery.getDocumentsFromFolder('folder-123', false);
 
       expect(result).toHaveLength(2);
@@ -309,6 +316,13 @@ describe('DocumentDiscovery', () => {
           },
           statusCode: 200,
         });
+
+      // Mock getDocumentMetadata for permission checking
+      mockApiClient.getDocumentMetadata.mockResolvedValue({
+        success: true,
+        data: mockDocument,
+        statusCode: 200,
+      });
 
       const result = await documentDiscovery.getDocumentsFromFolder('folder-123', true);
 

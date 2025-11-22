@@ -822,6 +822,7 @@ authCommand
 program
   .command('list')
   .description('List available Quip documents')
+  .option('--url <url>', 'List documents from a specific Quip URL')
   .option('--format <format>', 'Output format (table, json, csv)', 'table')
   .option('--limit <number>', 'Limit number of results', '50')
   .option('-v, --verbose', 'Show detailed document information')
@@ -840,8 +841,6 @@ program
         console.log('\n💡 Run "quip-export auth login" to authenticate first.');
         process.exit(1);
       }
-
-      console.log('📋 Listing Quip documents...\n');
 
       // Import required services
       const { QuipService } = await import('../services/quip');
@@ -865,21 +864,95 @@ program
       };
 
       let documents: any[] = [];
+      let sourceDescription: string;
 
-      // Discover all documents
-      const discoveryMessage = filter.maxDocuments
-        ? `🔍 Discovering up to ${filter.maxDocuments} documents...`
-        : '🔍 Discovering all accessible documents...';
-      console.log(discoveryMessage);
+      // Check if URL option is provided
+      if (options.url) {
+        // URL-based listing
+        console.log(`📋 Listing documents from URL: ${options.url}\n`);
+        
+        try {
+          const documentDiscovery = quipService.getDocumentDiscovery();
+          const discovery = await documentDiscovery.discoverFromUrl(options.url, filter);
+          documents = discovery.documents;
+          sourceDescription = `URL: ${options.url}`;
+          
+          console.log(`Found ${documents.length} document(s) from URL`);
+          if (discovery.skippedCount && discovery.skippedCount > 0) {
+            console.log(`⚠️  Skipped ${discovery.skippedCount} document(s) due to access permissions`);
+          }
+          console.log('');
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          
+          // Check for URL parsing errors
+          if (errorMessage.includes('Invalid Quip URL') || errorMessage.includes('Invalid URL format') || errorMessage.includes('Invalid thread ID format')) {
+            console.error(`❌ Invalid Quip URL: ${options.url}`);
+            console.error('');
+            console.error('Expected format:');
+            console.error('  https://quip.com/ThreadID/optional-title');
+            console.error('  https://quip-amazon.com/ThreadID');
+            console.error('  https://custom-domain.quip.com/ThreadID');
+            console.error('');
+            console.error('Examples:');
+            console.error('  https://quip.com/fNTdOlbHmWrW/AppMod-WWSO');
+            console.error('  https://quip-amazon.com/abc123XYZ456');
+            console.error('');
+            console.error('💡 Copy the URL directly from your browser address bar');
+            process.exit(1);
+          }
+          
+          // Check for resource not found errors
+          if (errorMessage.includes('Failed to fetch resource') || errorMessage.includes('not found') || errorMessage.includes('404')) {
+            console.error(`❌ Resource not found: ${options.url}`);
+            console.error('');
+            console.error('Possible reasons:');
+            console.error('  • The document or folder does not exist');
+            console.error('  • You do not have permission to access it');
+            console.error('  • The URL is incorrect or the resource was deleted');
+            console.error('');
+            console.error('💡 Troubleshooting steps:');
+            console.error('  1. Verify the URL in your browser first');
+            console.error('  2. Check that you can access the resource when logged in');
+            console.error('  3. Ensure you are authenticated with the correct account');
+            console.error('  4. Try copying the URL again from your browser');
+            process.exit(1);
+          }
+          
+          // Check for authentication errors
+          if (errorMessage.includes('401') || errorMessage.includes('Unauthorized') || errorMessage.includes('authentication') || errorMessage.includes('Authentication')) {
+            console.error(`❌ Authentication failed`);
+            console.error('');
+            console.error('Your authentication token may be invalid or expired.');
+            console.error('');
+            console.error('💡 To fix this:');
+            console.error('  1. Run "quip-export auth login" to re-authenticate');
+            console.error('  2. Verify your personal access token is still valid');
+            console.error('  3. Check that you have access to the Quip domain');
+            process.exit(1);
+          }
+          
+          // Re-throw other errors to be handled by outer catch
+          throw error;
+        }
+      } else {
+        // Existing full listing logic
+        console.log('📋 Listing Quip documents...\n');
+        
+        const discoveryMessage = filter.maxDocuments
+          ? `🔍 Discovering up to ${filter.maxDocuments} documents...`
+          : '🔍 Discovering all accessible documents...';
+        console.log(discoveryMessage);
 
-      const discovery = await quipService.discoverDocuments(filter);
-      documents = discovery.documents;
+        const discovery = await quipService.discoverDocuments(filter);
+        documents = discovery.documents;
+        sourceDescription = 'All accessible documents';
+      }
 
-      if (options.verbose) {
+      if (options.verbose && !options.url) {
         console.log(`📊 Discovery Summary:`);
-        console.log(`  Total documents found: ${discovery.totalCount}`);
-        console.log(`  After filtering: ${discovery.filteredCount}`);
-        console.log(`  Folder structures: ${discovery.folders.length}`);
+        console.log(`  Source: ${sourceDescription}`);
+        console.log(`  Total documents found: ${documents.length}`);
         if (filter.maxDocuments) {
           console.log(`  Limited to: ${filter.maxDocuments} documents`);
         }
@@ -907,7 +980,7 @@ program
           break;
       }
 
-      console.log(`\n✅ Listed ${documents.length} documents successfully!`);
+      console.log(`\n✅ Listed ${documents.length} document(s) successfully!`);
     } catch (error) {
       console.error(
         '❌ Failed to list documents:',
@@ -1221,6 +1294,7 @@ exportCommand
 exportCommand
   .command('preview')
   .description('Preview what documents will be exported with current configuration')
+  .option('--url <url>', 'Preview export from a specific Quip URL')
   .option('-c, --config <file>', 'Use specific configuration file')
   .option('--limit <number>', 'Limit preview to N documents', '20')
   .action(async (options) => {
@@ -1253,8 +1327,6 @@ exportCommand
         process.exit(1);
       }
 
-      console.log('\n🔍 Discovering documents for export preview...\n');
-
       // Import required services
       const { QuipService } = await import('../services/quip');
       const { ConsoleLogger } = await import('../core/logger');
@@ -1275,15 +1347,94 @@ exportCommand
       const previewLimit = parseInt(options.limit);
       const effectiveLimit = previewLimit || exportSettings.maxDocuments;
 
-      // Discover documents based on configuration
-      const discovery = await quipService.discoverDocuments({
-        includeShared: exportSettings.includeSharedDocuments,
-        includeTemplates: false,
-        includeDeleted: false,
-        maxDocuments: effectiveLimit, // Use the effective limit to optimize discovery
-      });
+      let documentsToExport: any[];
+      let sourceDescription: string;
 
-      const documentsToExport = discovery.documents;
+      if (options.url) {
+        // URL-based preview
+        console.log(`\n🔍 Previewing export from URL: ${options.url}\n`);
+
+        try {
+          const discovery = await quipService.discoverFromUrl(options.url, {
+            includeShared: exportSettings.includeSharedDocuments,
+            includeTemplates: false,
+            includeDeleted: false,
+          });
+
+          documentsToExport = discovery.documents;
+          sourceDescription = `URL: ${options.url}`;
+          
+          if (discovery.skippedCount && discovery.skippedCount > 0) {
+            console.log(`⚠️  Note: ${discovery.skippedCount} document(s) were skipped due to access permissions\n`);
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          
+          // Check for URL parsing errors
+          if (errorMessage.includes('Invalid Quip URL') || errorMessage.includes('Invalid URL format') || errorMessage.includes('Invalid thread ID format')) {
+            console.error(`❌ Invalid Quip URL: ${options.url}`);
+            console.error('');
+            console.error('Expected format:');
+            console.error('  https://quip.com/ThreadID/optional-title');
+            console.error('  https://quip-amazon.com/ThreadID');
+            console.error('  https://custom-domain.quip.com/ThreadID');
+            console.error('');
+            console.error('Examples:');
+            console.error('  https://quip.com/fNTdOlbHmWrW/AppMod-WWSO');
+            console.error('  https://quip-amazon.com/abc123XYZ456');
+            console.error('');
+            console.error('💡 Copy the URL directly from your browser address bar');
+            process.exit(1);
+          }
+          
+          // Check for resource not found errors
+          if (errorMessage.includes('Failed to fetch resource') || errorMessage.includes('not found') || errorMessage.includes('404')) {
+            console.error(`❌ Resource not found: ${options.url}`);
+            console.error('');
+            console.error('Possible reasons:');
+            console.error('  • The document or folder does not exist');
+            console.error('  • You do not have permission to access it');
+            console.error('  • The URL is incorrect or the resource was deleted');
+            console.error('');
+            console.error('💡 Troubleshooting steps:');
+            console.error('  1. Verify the URL in your browser first');
+            console.error('  2. Check that you can access the resource when logged in');
+            console.error('  3. Ensure you are authenticated with the correct account');
+            console.error('  4. Try copying the URL again from your browser');
+            process.exit(1);
+          }
+          
+          // Check for authentication errors
+          if (errorMessage.includes('401') || errorMessage.includes('Unauthorized') || errorMessage.includes('authentication') || errorMessage.includes('Authentication')) {
+            console.error(`❌ Authentication failed`);
+            console.error('');
+            console.error('Your authentication token may be invalid or expired.');
+            console.error('');
+            console.error('💡 To fix this:');
+            console.error('  1. Run "quip-export auth login" to re-authenticate');
+            console.error('  2. Verify your personal access token is still valid');
+            console.error('  3. Check that you have access to the Quip domain');
+            process.exit(1);
+          }
+          
+          // Re-throw other errors to be handled by outer catch
+          throw error;
+        }
+      } else {
+        // Existing full preview logic
+        console.log('\n🔍 Discovering documents for export preview...\n');
+
+        const discovery = await quipService.discoverDocuments({
+          includeShared: exportSettings.includeSharedDocuments,
+          includeTemplates: false,
+          includeDeleted: false,
+          maxDocuments: effectiveLimit, // Use the effective limit to optimize discovery
+        });
+
+        documentsToExport = discovery.documents;
+        sourceDescription = 'All accessible documents';
+      }
+
       const previewDocuments = documentsToExport;
 
       if (documentsToExport.length === 0) {
@@ -1295,10 +1446,11 @@ exportCommand
       console.log('📋 Export Preview');
       console.log('═'.repeat(60));
       console.log(`Configuration: ${configPath}`);
+      console.log(`Source: ${sourceDescription}`);
       console.log(`Documents to export: ${documentsToExport.length}`);
-      if (exportSettings.maxDocuments && discovery.totalCount > documentsToExport.length) {
+      if (!options.url && exportSettings.maxDocuments && documentsToExport.length >= exportSettings.maxDocuments) {
         console.log(
-          `⚠️  Limited by maxDocuments setting (${discovery.totalCount}+ documents available)`
+          `⚠️  Limited by maxDocuments setting (more documents may be available)`
         );
       }
       console.log(`Preview showing: ${previewDocuments.length} documents`);
@@ -1431,6 +1583,7 @@ exportCommand
 exportCommand
   .command('start')
   .description('Start the export process with configured settings')
+  .option('--url <url>', 'Export from a specific Quip URL (document or folder)')
   .option('-c, --config <file>', 'Use specific configuration file')
   .option('--dry-run', 'Preview export without actually downloading files')
   .action(async (options) => {
@@ -1468,6 +1621,33 @@ exportCommand
 
       // Get export settings from nested structure
       const exportSettings = exportConfig.export || exportConfig;
+
+      // Determine export scope and create document filter
+      let exportScope: string;
+      let documentFilter: any;
+
+      if (options.url) {
+        // URL-based export
+        console.log(`📎 Export Source: ${options.url}`);
+        exportScope = `URL: ${options.url}`;
+
+        documentFilter = {
+          url: options.url,
+          includeShared: exportSettings.includeSharedDocuments ?? true,
+          includeTemplates: false,
+          includeDeleted: false,
+        };
+      } else {
+        // Full export (existing behavior)
+        exportScope = 'All configured documents';
+
+        documentFilter = {
+          includeShared: exportSettings.includeSharedDocuments ?? true,
+          includeTemplates: false,
+          includeDeleted: false,
+          maxDocuments: exportSettings.maxDocuments,
+        };
+      }
 
       // Handle format overrides from command line
       const finalExportFormats = exportSettings.exportFormats || [
@@ -1527,16 +1707,17 @@ exportCommand
         exportFormat: finalExportFormats[0], // Backward compatibility
         formatSpecificOptions: finalFormatOptions, // Format-specific options
         useFormatDirectories: finalExportFormats.length > 1 || exportSettings.useFormatDirectories,
-        includeSharedDocuments: exportSettings.includeSharedDocuments ?? true,
+        includeSharedDocuments: documentFilter.includeShared,
         preserveFolderStructure: exportSettings.preserveFolderStructure ?? true,
         batchSize: exportSettings.batchSize || 10,
         rateLimitDelay: exportSettings.rateLimitDelay || 1000,
         retryAttempts: exportSettings.retryAttempts || 3,
-        maxDocuments: exportSettings.maxDocuments,
+        maxDocuments: documentFilter.maxDocuments,
         includeFolders: [], // Include all folders by default
         sanitizeFileNames: true,
         conflictResolution: 'number' as const,
         datePrefix: exportSettings.datePrefix || { enabled: true, format: 'YYYY-MM-DD' },
+        url: documentFilter.url, // URL for URL-based exports
       };
 
       if (options.dryRun) {
@@ -1546,6 +1727,7 @@ exportCommand
 
       // Display configuration summary
       console.log('📋 Export Configuration:');
+      console.log(`  Export Scope: ${exportScope}`);
       console.log(`  Output Directory: ${orchConfig.outputDirectory}`);
       console.log(
         `  Export Formats: ${orchConfig.exportFormats.map((f: string) => f.toUpperCase()).join(', ')}`
@@ -1569,7 +1751,7 @@ exportCommand
       console.log(`  Preserve Folders: ${orchConfig.preserveFolderStructure ? 'Yes' : 'No'}`);
       console.log(`  Batch Size: ${orchConfig.batchSize}`);
       console.log(`  Rate Limit: ${orchConfig.rateLimitDelay}ms`);
-      if (orchConfig.maxDocuments) {
+      if (orchConfig.maxDocuments && !options.url) {
         console.log(`  Document Limit: ${orchConfig.maxDocuments}`);
       }
       console.log('');

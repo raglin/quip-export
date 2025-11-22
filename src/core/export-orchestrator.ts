@@ -251,11 +251,25 @@ export class ExportOrchestrator {
     this.logger.info('Discovering documents...');
 
     try {
-      const discoveryResult = await this.documentDiscovery.discoverDocuments({
-        includeShared: config.includeSharedDocuments,
-        types: ['DOCUMENT', 'SPREADSHEET'],
-        maxDocuments: config.maxDocuments, // Pass the limit to optimize discovery
-      });
+      let discoveryResult;
+
+      // Check if URL is provided for URL-based export
+      if (config.url) {
+        this.logger.info(`Using URL-based discovery: ${config.url}`);
+        discoveryResult = await this.documentDiscovery.discoverFromUrl(config.url, {
+          includeShared: config.includeSharedDocuments,
+          types: ['DOCUMENT', 'SPREADSHEET'],
+          maxDocuments: config.maxDocuments,
+        });
+      } else {
+        // Use existing discovery when URL is absent
+        this.logger.info('Using standard document discovery');
+        discoveryResult = await this.documentDiscovery.discoverDocuments({
+          includeShared: config.includeSharedDocuments,
+          types: ['DOCUMENT', 'SPREADSHEET'],
+          maxDocuments: config.maxDocuments, // Pass the limit to optimize discovery
+        });
+      }
 
       const tasks: DocumentExportTask[] = discoveryResult.documents.map((docWithPath, index) => ({
         documentId: docWithPath.document.id,
@@ -305,12 +319,14 @@ export class ExportOrchestrator {
       memoryThreshold: 500, // 500MB threshold
     };
 
+    // Display total document count at start
     this.logger.info(
       `Processing ${tasks.length} documents in batches of ${batchOptions.batchSize}`
     );
     this.stateManager.startExport();
 
     const batches = this.createBatches(tasks, batchOptions.batchSize);
+    const startTime = Date.now();
 
     for (let i = 0; i < batches.length; i++) {
       if (this.shouldCancel) {
@@ -332,6 +348,21 @@ export class ExportOrchestrator {
 
       // Check memory usage and pause if needed
       await this.checkMemoryUsage(batchOptions.memoryThreshold);
+    }
+
+    // Display completion summary with time and success rate
+    const endTime = Date.now();
+    const duration = (endTime - startTime) / 1000; // in seconds
+    const session = this.stateManager.getCurrentSession();
+    if (session) {
+      const successCount = session.state.successfulExports;
+      const failedCount = session.state.failedExports;
+      const totalProcessed = successCount + failedCount;
+      const successRate = totalProcessed > 0 ? ((successCount / totalProcessed) * 100).toFixed(1) : '0.0';
+      
+      this.logger.info(
+        `Export completed in ${duration.toFixed(1)}s - Success: ${successCount}/${totalProcessed} (${successRate}%)`
+      );
     }
   }
 
@@ -373,6 +404,14 @@ export class ExportOrchestrator {
 
     // Determine formats for this document
     const formats = this.getFormatsForDocument(task.documentType, config);
+
+    // Show current document number and title during export
+    const session = this.stateManager.getCurrentSession();
+    if (session) {
+      const currentNumber = session.state.processedDocuments + 1;
+      const totalDocuments = session.state.totalDocuments;
+      this.logger.info(`[${currentNumber}/${totalDocuments}] Exporting: ${task.documentTitle}`);
+    }
 
     this.stateManager.startDocumentExport(
       task.documentId,

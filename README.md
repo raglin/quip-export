@@ -39,15 +39,17 @@ quip-export list
 ### 4. Export Your Documents
 
 ```bash
-# Configure export
-quip-export export configure
+# Option 1: Export from a URL (fastest for specific documents/folders)
+quip-export export start --url https://quip.com/AbC123XyZ456/Document-Title
 
-# Export documents
+# Option 2: Export all documents (requires configuration)
+quip-export export configure
 quip-export export start
 ```
 
 ## ✨ Key Features
 
+- **🔗 URL-Based Export**: Export specific documents or folders by simply providing their Quip URLs from your browser
 - **📅 Automatic Date Prefixing**: Exported filenames are automatically prefixed with the document's last updated date (e.g., `2024-11-20 Meeting Notes.docx`) for easy chronological organization
 - **🗂️ Folder Structure Preservation**: Maintains your Quip folder hierarchy in the local export
 - **📄 Multiple Export Formats**: Support for native (DOCX/XLSX), HTML, and Markdown formats
@@ -62,6 +64,7 @@ quip-export export start
 - [Installation](#installation)
 - [Authentication Setup](#authentication-setup)
 - [Usage Guide](#usage-guide)
+- [URL-Based Export](#url-based-export)
 - [Export Configuration](#export-configuration)
 - [Folder Structure](#folder-structure)
 - [File Formats](#file-formats)
@@ -140,9 +143,12 @@ quip-export auth status
 | `quip-export setup` | Interactive setup for authentication and export preferences |
 | `quip-export auth status` | Check authentication status |
 | `quip-export list` | List all accessible documents |
+| `quip-export list --url <url>` | List documents from a specific Quip URL |
 | `quip-export export configure` | Configure export preferences |
 | `quip-export export preview` | Preview what will be exported |
+| `quip-export export preview --url <url>` | Preview export from a specific Quip URL |
 | `quip-export export start` | Start the export process |
+| `quip-export export start --url <url>` | Export from a specific Quip URL |
 | `quip-export export check-formats` | Check available export formats and dependencies |
 | `quip-export --help` | Show all available commands |
 
@@ -170,6 +176,18 @@ Title                                              Type        Created      Upda
 ──────────────────────────────────────────────────────────────────────────────────────────────
 Meeting Notes                                      DOCUMENT    2024-01-15   2024-11-20   Private
 Project Proposal                                   DOCUMENT    2024-03-10   2024-10-05   Shared
+```
+
+#### List Documents from URL
+```bash
+# List documents from a specific folder URL
+quip-export list --url https://quip.com/fNTdOlbHmWrW/Team-Documents
+
+# List a single document by URL
+quip-export list --url https://quip.com/AbC123XyZ456/Meeting-Notes
+
+# Combine with other options
+quip-export list --url https://quip.com/fNTdOlbHmWrW --verbose
 ```
 
 ### Exporting Documents
@@ -201,6 +219,291 @@ The preview command shows the exact filenames that will be created, including da
    Updated: 2024-10-05
    Output: exported-documents/Shared/2024-10-05 Project Proposal.docx
 ```
+
+#### URL-Based Export
+
+Export specific documents or folders directly using their Quip URLs. This is perfect when you want to export a subset of documents without configuring complex filters.
+
+##### Export a Single Document
+```bash
+# Copy the URL from your browser and export it
+quip-export export start --url https://quip.com/AbC123XyZ456/Meeting-Notes
+```
+
+##### Export an Entire Folder
+```bash
+# Export all accessible documents from a folder
+quip-export export start --url https://quip.com/fNTdOlbHmWrW/Team-Documents
+```
+
+##### Preview Before Exporting
+```bash
+# Preview what will be exported from a URL
+quip-export export preview --url https://quip.com/fNTdOlbHmWrW/Team-Documents
+
+# Then export if it looks good
+quip-export export start --url https://quip.com/fNTdOlbHmWrW/Team-Documents
+```
+
+##### Supported URL Formats
+
+The tool accepts various Quip URL formats:
+
+```bash
+# Standard format with title
+https://quip.com/AbC123XyZ456/Document-Title
+
+# Without title
+https://quip.com/AbC123XyZ456
+
+# With query parameters (ignored)
+https://quip.com/AbC123XyZ456/Document-Title?section=abc
+
+# Enterprise domains
+https://quip-company.com/AbC123XyZ456/Document-Title
+
+# Custom domains
+https://docs.company.com/AbC123XyZ456
+```
+
+##### How to Get a Quip URL
+
+1. Open the document or folder in your web browser
+2. Copy the URL from the address bar
+3. Paste it into the `--url` parameter
+
+Example workflow:
+```bash
+# 1. Browse to a folder in Quip: https://quip.com/fNTdOlbHmWrW/Q4-Planning
+# 2. Copy the URL
+# 3. Export it:
+quip-export export start --url https://quip.com/fNTdOlbHmWrW/Q4-Planning
+```
+
+##### URL Export Features
+
+- **Automatic Type Detection**: The tool automatically determines if the URL is a document or folder
+- **Permission Handling**: Skips documents you don't have access to (in folders) with clear warnings
+- **Progress Tracking**: Shows real-time progress for folder exports
+- **Folder Structure**: Preserves folder structure when exporting from folder URLs
+- **Date Prefixing**: Applies your configured date prefix settings to exported files
+
+## 🔗 URL-Based Export
+
+URL-based export allows you to export specific documents or folders by providing their Quip URLs directly from your web browser. This is the fastest way to export a subset of documents without configuring complex filters or navigating folder structures.
+
+### Quick Start
+
+```bash
+# 1. Open a document or folder in your browser
+# 2. Copy the URL from the address bar
+# 3. Export it:
+quip-export export start --url https://quip.com/AbC123XyZ456/Document-Title
+```
+
+### Supported URL Formats
+
+The tool accepts Quip URLs in various formats and automatically extracts the thread ID:
+
+| Format | Example | Notes |
+|--------|---------|-------|
+| Standard with title | `https://quip.com/AbC123XyZ456/Document-Title` | Most common format |
+| Without title | `https://quip.com/AbC123XyZ456` | Also valid |
+| With query parameters | `https://quip.com/AbC123XyZ456?section=abc` | Query params ignored |
+| Enterprise domain | `https://quip-company.com/AbC123XyZ456` | Custom domains supported |
+| With path segments | `https://quip.com/AbC123XyZ456/Title/extra` | Only thread ID extracted |
+
+**Thread ID Requirements:**
+- Alphanumeric characters only
+- Minimum 8 characters (typically 12)
+- Case-sensitive
+- First path segment after domain
+
+### Use Cases
+
+#### Export a Single Document
+
+Perfect for backing up or sharing a specific document:
+
+```bash
+# Copy URL from browser
+quip-export export start --url https://quip.com/AbC123XyZ456/Meeting-Notes
+
+# Output:
+# 🚀 Starting export from URL: https://quip.com/AbC123XyZ456/Meeting-Notes
+# Export scope: URL: https://quip.com/AbC123XyZ456/Meeting-Notes
+# ✅ Exported: 2024-11-20 Meeting Notes.docx
+```
+
+#### Export an Entire Folder
+
+Export all accessible documents from a folder and its subfolders:
+
+```bash
+# Copy folder URL from browser
+quip-export export start --url https://quip.com/fNTdOlbHmWrW/Team-Documents
+
+# Output:
+# 🚀 Starting export from URL: https://quip.com/fNTdOlbHmWrW/Team-Documents
+# Export scope: URL: https://quip.com/fNTdOlbHmWrW/Team-Documents
+# 
+# Exporting 15 documents...
+# [1/15] ✅ 2024-11-20 Meeting Notes.docx
+# [2/15] ✅ 2024-11-15 Project Plan.docx
+# ...
+# [15/15] ✅ 2024-10-01 Archive.docx
+# 
+# ✅ Export complete! 15 documents exported in 45s
+```
+
+#### Preview Before Exporting
+
+Check what will be exported before starting:
+
+```bash
+# Preview folder contents
+quip-export export preview --url https://quip.com/fNTdOlbHmWrW/Team-Documents
+
+# Output shows:
+# - Number of documents
+# - Document titles
+# - Output paths
+# - Folder structure
+
+# Then export if it looks good
+quip-export export start --url https://quip.com/fNTdOlbHmWrW/Team-Documents
+```
+
+#### List Documents from URL
+
+Browse folder contents without exporting:
+
+```bash
+# List all documents in a folder
+quip-export list --url https://quip.com/fNTdOlbHmWrW/Team-Documents
+
+# List with details
+quip-export list --url https://quip.com/fNTdOlbHmWrW --verbose
+
+# List a single document
+quip-export list --url https://quip.com/AbC123XyZ456/Document
+```
+
+### How It Works
+
+1. **URL Parsing**: Extracts the thread ID from the URL
+2. **Resource Detection**: Determines if it's a document or folder
+3. **Permission Check**: Verifies you have access to the resource
+4. **Discovery**: 
+   - For documents: Prepares single document for export
+   - For folders: Discovers all accessible documents recursively
+5. **Export**: Uses your configured export settings (format, date prefix, etc.)
+6. **Progress**: Shows real-time progress and summary
+
+### Permission Handling
+
+When exporting folders, you may not have access to all documents:
+
+```bash
+quip-export export start --url https://quip.com/fNTdOlbHmWrW/Shared-Folder
+
+# Output:
+# Exporting 20 documents...
+# [1/20] ✅ 2024-11-20 Document 1.docx
+# [2/20] ⚠️  Skipped: Document 2 (no access)
+# [3/20] ✅ 2024-11-19 Document 3.docx
+# ...
+# 
+# ⚠️  Skipped 3 document(s) due to access permissions
+# ✅ Successfully exported 17 documents
+```
+
+**Permission Behavior:**
+- Documents you can access: Exported normally
+- Documents you can't access: Skipped with warning
+- Export continues without failing
+- Summary shows skipped count
+
+### Combining with Other Options
+
+URL-based export works with other CLI options:
+
+```bash
+# Use custom configuration file
+quip-export export start --url https://quip.com/AbC123XyZ456 --config ./my-config.json
+
+# Dry run (preview without downloading)
+quip-export export start --url https://quip.com/fNTdOlbHmWrW --dry-run
+
+# List with custom format
+quip-export list --url https://quip.com/fNTdOlbHmWrW --format csv
+
+# Preview with limit
+quip-export export preview --url https://quip.com/fNTdOlbHmWrW --limit 10
+```
+
+### Comparison: URL vs Full Export
+
+| Feature | URL-Based Export | Full Export |
+|---------|------------------|-------------|
+| **Speed** | Fast (specific subset) | Slower (all documents) |
+| **Setup** | No configuration needed | Requires filter configuration |
+| **Use Case** | Specific documents/folders | Complete backup |
+| **Discovery** | Single URL | All accessible documents |
+| **Filters** | URL defines scope | Configuration defines scope |
+| **Best For** | Ad-hoc exports, sharing | Scheduled backups, migrations |
+
+### Examples by Scenario
+
+#### Scenario 1: Export Project Documentation
+```bash
+# You're working on a project and want to backup its folder
+# 1. Open the project folder in Quip
+# 2. Copy URL: https://quip.com/fNTdOlbHmWrW/Q4-Project
+# 3. Export:
+quip-export export start --url https://quip.com/fNTdOlbHmWrW/Q4-Project
+```
+
+#### Scenario 2: Share a Single Document
+```bash
+# You need to send a document to someone outside Quip
+# 1. Open the document in Quip
+# 2. Copy URL: https://quip.com/AbC123XyZ456/Proposal
+# 3. Export:
+quip-export export start --url https://quip.com/AbC123XyZ456/Proposal
+# 4. Share the exported file
+```
+
+#### Scenario 3: Archive Team Documents
+```bash
+# Your team is moving to a new platform
+# 1. Get the team folder URL: https://quip.com/fNTdOlbHmWrW/Team-Docs
+# 2. Preview what will be exported:
+quip-export export preview --url https://quip.com/fNTdOlbHmWrW/Team-Docs
+# 3. Export everything:
+quip-export export start --url https://quip.com/fNTdOlbHmWrW/Team-Docs
+```
+
+#### Scenario 4: Verify Access Before Export
+```bash
+# You want to check what you can access in a shared folder
+# 1. List documents first:
+quip-export list --url https://quip.com/fNTdOlbHmWrW/Shared --verbose
+# 2. Preview export:
+quip-export export preview --url https://quip.com/fNTdOlbHmWrW/Shared
+# 3. Export if satisfied:
+quip-export export start --url https://quip.com/fNTdOlbHmWrW/Shared
+```
+
+### Tips and Best Practices
+
+1. **Always Preview First**: Use `export preview --url` to verify what will be exported
+2. **Test with List**: Use `list --url` to check access before exporting large folders
+3. **Copy from Browser**: Always copy URLs directly from your browser's address bar
+4. **Check Permissions**: Expect some documents to be skipped in shared folders
+5. **Use Verbose Mode**: Add `--verbose` to see detailed information about skipped documents
+6. **Verify in Browser**: If a URL doesn't work, verify it opens correctly in your browser first
+7. **Match Domains**: Ensure your configured domain matches the URL's domain
 
 ## ⚙️ Export Configuration
 
@@ -477,12 +780,111 @@ df -h
 quip-export export configure
 # Choose a directory on a drive with more space
 ```
+
+### URL-Based Export Issues
+
+#### "Invalid Quip URL" or "Cannot extract thread ID"
+```bash
+# Verify the URL format is correct
+# Expected formats:
+#   https://quip.com/ThreadID/optional-title
+#   https://quip.com/ThreadID
+
+# Example of valid URL:
+quip-export export start --url https://quip.com/AbC123XyZ456/Document-Title
+
+# Common mistakes:
+# ❌ Missing https://
+# ❌ Incomplete URL (just the thread ID)
+# ❌ URL from a different service
+```
+
+#### "Resource not found" or "Thread does not exist"
+```bash
+# Verify the URL is correct by opening it in your browser first
+# Make sure you're logged into Quip in your browser
+
+# Check if you have access to the document/folder
+# Try listing it first:
+quip-export list --url https://quip.com/AbC123XyZ456
+
+# If the URL works in browser but not in the tool:
+# 1. Check your authentication
+quip-export auth status
+
+# 2. Verify you're using the correct domain
+# The domain in the URL should match your configured domain
+```
+
+#### "Skipped documents due to permissions"
+```bash
+# This is normal when exporting folders with mixed permissions
+# The tool will:
+# - Export documents you have access to
+# - Skip documents you don't have access to
+# - Show warnings for skipped documents
+# - Display a summary at the end
+
+# Example output:
+# ⚠️  Skipped 3 document(s) due to access permissions
+# ✅ Successfully exported 15 documents
+
+# To see which documents were skipped:
+quip-export export start --url https://quip.com/FolderID --verbose
+```
+
+#### "Authentication required" when using URL
+```bash
+# Make sure you're authenticated
+quip-export auth status
+
+# If not authenticated, run setup
+quip-export setup
+
+# Verify your token has the necessary permissions
+# Visit: https://your-domain.com/dev/token
+# Regenerate if needed
+```
+
+#### URL works in browser but not in tool
+```bash
+# 1. Verify domain configuration matches the URL
+#    If URL is https://quip-company.com/...
+#    Your configured domain should be quip-company.com
+
+# 2. Check authentication for that domain
+quip-export auth status
+
+# 3. Reconfigure if needed
+quip-export setup
+
+# 4. Test with list command first
+quip-export list --url https://your-url-here
+```
+
+#### Folder URL exports only some documents
+```bash
+# This is expected behavior - the tool only exports documents you have access to
+
+# To see what will be exported before starting:
+quip-export export preview --url https://quip.com/FolderID
+
+# To see detailed information about skipped documents:
+quip-export export start --url https://quip.com/FolderID --verbose
+
+# Note: Subfolders within the folder are also traversed
+# All accessible documents in the folder tree will be exported
+```
+
 ### Common Issues
 
 1. **Authentication Problems**: Regenerate your personal access token
 2. **Export Failures**: Check network connection and disk space
 3. **Missing Documents**: Verify folder access and permissions
 4. **Slow Performance**: Increase rate limit delay or reduce batch size
+5. **Invalid URL**: Verify URL format and copy directly from browser
+6. **Resource Not Found**: Check URL in browser first and verify authentication
+7. **Partial Folder Export**: Normal when you don't have access to all documents in a folder
 
 ### Reporting Issues
 

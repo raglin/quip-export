@@ -25,6 +25,13 @@ export interface QuipFolder {
   member_ids: string[];
 }
 
+export interface QuipUrlInfo {
+  threadId: string;
+  domain: string;
+  isValid: boolean;
+  error?: string;
+}
+
 // Export state and error types are defined in core/export-types.ts
 
 // Legacy interfaces for backward compatibility

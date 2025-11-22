@@ -37,6 +37,7 @@ export interface ExportConfig {
   conflictResolution: 'number' | 'timestamp' | 'overwrite';
   useFormatDirectories?: boolean; // New option for format-based organization
   datePrefix?: DatePrefixConfig;
+  url?: string; // Optional URL for URL-based exports
 }
 
 export interface ExportError {

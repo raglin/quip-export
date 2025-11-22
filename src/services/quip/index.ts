@@ -5,3 +5,4 @@ export * from './document-discovery';
 export * from './document-exporter';
 export * from './quip-service';
 export * from './format-converters';
+export * from './url-parser';

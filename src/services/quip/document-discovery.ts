@@ -1,6 +1,7 @@
 import { QuipApiClient } from './api-client';
 import { QuipDocument, QuipFolder, Logger } from '../../types';
 import { QuipListResponse } from './types';
+import { parseQuipUrl } from './url-parser';
 
 export interface DocumentFilter {
   types?: Array<'DOCUMENT' | 'SPREADSHEET' | 'CHAT'>;
@@ -11,6 +12,7 @@ export interface DocumentFilter {
   createdBefore?: Date;
   titleContains?: string;
   maxDocuments?: number;
+  url?: string;
 }
 
 export interface DocumentWithPath {
@@ -31,6 +33,7 @@ export interface DiscoveryResult {
   folders: FolderStructure[];
   totalCount: number;
   filteredCount: number;
+  skippedCount?: number;
 }
 
 /**
@@ -41,6 +44,7 @@ export class DocumentDiscovery {
   private readonly logger: Logger;
   private readonly documentCache = new Map<string, QuipDocument>();
   private readonly folderCache = new Map<string, QuipFolder>();
+  private skippedDocumentCount = 0;
 
   constructor(apiClient: QuipApiClient, logger: Logger) {
     this.apiClient = apiClient;
@@ -328,6 +332,206 @@ export class DocumentDiscovery {
   }
 
   /**
+   * Discover documents from a Quip URL
+   * Automatically determines if URL is a folder or document
+   */
+  async discoverFromUrl(url: string, filter?: DocumentFilter): Promise<DiscoveryResult> {
+    this.logger.info(`Discovering documents from URL: ${url}`);
+
+    // Parse URL
+    const urlInfo = parseQuipUrl(url);
+    if (!urlInfo.isValid) {
+      throw new Error(`Invalid Quip URL: ${urlInfo.error}`);
+    }
+
+    this.logger.debug(`Extracted thread ID: ${urlInfo.threadId}`);
+
+    try {
+      // Try to get as folder first (folders use /1/folders endpoint)
+      this.logger.debug(`Attempting to fetch as folder: ${urlInfo.threadId}`);
+      const folderResponse = await this.apiClient.getFolderContents(urlInfo.threadId);
+      
+      if (folderResponse.success) {
+        this.logger.debug(`Resource is a folder, discovering all documents within`);
+        return this.discoverFromFolder(urlInfo.threadId, filter);
+      }
+      
+      // If folder fetch failed, try as document (documents use /2/threads endpoint)
+      this.logger.debug(`Folder fetch failed, attempting to fetch as document: ${urlInfo.threadId}`);
+      const metadata = await this.apiClient.getDocumentMetadata(urlInfo.threadId);
+      
+      if (!metadata.success) {
+        // Provide more specific error message for resource not found (404 only)
+        const errorMsg = metadata.error || 'Unknown error';
+        const statusCode = metadata.statusCode;
+        
+        if (statusCode === 404 || errorMsg.startsWith('HTTP 404')) {
+          throw new Error(`Resource not found: The document or folder at this URL does not exist or you don't have access to it`);
+        }
+        throw new Error(`Failed to fetch resource: ${errorMsg}`);
+      }
+
+      const resource = metadata.data as any;
+      this.logger.debug(`Resource is a document, returning single document`);
+      return this.discoverSingleDocument(resource, filter);
+      
+    } catch (error) {
+      this.logger.error('Failed to discover from URL', { error: error instanceof Error ? error.message : String(error) });
+      throw error;
+    }
+  }
+
+  /**
+   * Discover all documents from a folder URL
+   */
+  private async discoverFromFolder(
+    folderId: string,
+    filter?: DocumentFilter
+  ): Promise<DiscoveryResult> {
+    this.logger.debug(`Discovering documents from folder: ${folderId}`);
+
+    try {
+      // Reset skipped count for this discovery operation
+      this.skippedDocumentCount = 0;
+      
+      const documents = await this.getDocumentsFromFolder(folderId, true);
+
+      // Apply filters if provided
+      let filteredDocs = documents;
+      if (filter) {
+        filteredDocs = this.applyFilters(documents, filter);
+      }
+
+      this.logger.info(`Folder discovery complete: ${filteredDocs.length} documents found`);
+      
+      if (this.skippedDocumentCount > 0) {
+        this.logger.info(`⚠️  Skipped ${this.skippedDocumentCount} document(s) due to access permissions`);
+      }
+
+      return {
+        documents: filteredDocs,
+        folders: [], // Folder structure is implicit in folderPath
+        totalCount: documents.length,
+        filteredCount: filteredDocs.length,
+        skippedCount: this.skippedDocumentCount
+      };
+    } catch (error) {
+      this.logger.error(`Failed to discover from folder ${folderId}`, { error: error instanceof Error ? error.message : String(error) });
+      throw error;
+    }
+  }
+
+  /**
+   * Create discovery result for a single document
+   */
+  private async discoverSingleDocument(
+    resource: any,
+    filter?: DocumentFilter
+  ): Promise<DiscoveryResult> {
+    this.logger.debug(`Processing single document: ${resource.thread?.id || resource.id}`);
+
+    // Extract document from resource (handle both V2 API format and direct document format)
+    const threadData = resource.thread || resource;
+    const document: QuipDocument = {
+      id: threadData.id,
+      title: threadData.title || 'Untitled',
+      type: (threadData.type || 'DOCUMENT').toUpperCase() as 'DOCUMENT' | 'SPREADSHEET' | 'CHAT',
+      created_usec: threadData.created_usec || Date.now() * 1000,
+      updated_usec: threadData.updated_usec || Date.now() * 1000,
+      author_id: threadData.author_id || '',
+      owning_company_id: threadData.owning_company_id || null,
+      link: threadData.link || '',
+      secret_path: threadData.secret_path || '',
+      is_template: threadData.is_template || false,
+      is_deleted: threadData.is_deleted || false
+    };
+
+    // Try to get the actual folder path for this document
+    let folderPath = 'Documents';
+    try {
+      const documentFolderPath = await this.getDocumentFolderPath(document);
+      if (documentFolderPath && documentFolderPath !== 'Documents') {
+        folderPath = documentFolderPath;
+      }
+    } catch (error) {
+      this.logger.debug(`Could not determine folder path for document ${document.id}, using default`);
+    }
+
+    // Check if document passes filters
+    const docWithPath: DocumentWithPath = {
+      document,
+      folderPath,
+      isShared: this.isDocumentShared(document)
+    };
+
+    if (filter && !this.documentMatchesFilter(docWithPath, filter)) {
+      this.logger.debug(`Document filtered out by filter criteria`);
+      return {
+        documents: [],
+        folders: [],
+        totalCount: 0,
+        filteredCount: 0
+      };
+    }
+
+    this.logger.info(`Single document discovery complete: ${document.title}`);
+
+    return {
+      documents: [docWithPath],
+      folders: [],
+      totalCount: 1,
+      filteredCount: 1
+    };
+  }
+
+  /**
+   * Check if a document matches the filter criteria
+   */
+  private documentMatchesFilter(docWithPath: DocumentWithPath, filter: DocumentFilter): boolean {
+    const { document, isShared } = docWithPath;
+
+    // Filter by document type
+    if (filter.types && !filter.types.includes(document.type)) {
+      return false;
+    }
+
+    // Filter by shared status
+    if (filter.includeShared === false && isShared) {
+      return false;
+    }
+
+    // Filter by template status
+    if (filter.includeTemplates === false && document.is_template) {
+      return false;
+    }
+
+    // Filter by deleted status
+    if (filter.includeDeleted === false && document.is_deleted) {
+      return false;
+    }
+
+    // Filter by creation date
+    if (filter.createdAfter || filter.createdBefore) {
+      const createdDate = new Date(document.created_usec / 1000);
+
+      if (filter.createdAfter && createdDate < filter.createdAfter) {
+        return false;
+      }
+
+      if (filter.createdBefore && createdDate > filter.createdBefore) {
+        return false;
+      }
+    }
+
+    // Filter by title content
+    if (filter.titleContains && !document.title.toLowerCase().includes(filter.titleContains.toLowerCase())) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
    * Get documents from a specific folder
    */
   async getDocumentsFromFolder(folderId: string, recursive: boolean = true): Promise<DocumentWithPath[]> {
@@ -339,14 +543,47 @@ export class DocumentDiscovery {
         throw new Error(`Failed to get folder contents: ${folderResponse.error}`);
       }
 
+      // Extract and cache folder metadata from response
+      const responseData = folderResponse.data as any;
+      if (responseData.folder) {
+        const folderMetadata: QuipFolder = {
+          id: responseData.folder.id || folderId,
+          title: responseData.folder.title || folderId,
+          created_usec: responseData.folder.created_usec || Date.now() * 1000,
+          updated_usec: responseData.folder.updated_usec || Date.now() * 1000,
+          children: responseData.children || [],
+          member_ids: responseData.folder.member_ids || []
+        };
+        this.folderCache.set(folderId, folderMetadata);
+      }
+
       const { documents, folders } = await this.parseListResponse(folderResponse.data!);
       const folderPath = await this.getFolderPath(folderId);
       
-      let allDocuments: DocumentWithPath[] = documents.map(doc => ({
-        document: doc,
-        folderPath,
-        isShared: this.isDocumentShared(doc)
-      }));
+      // Verify read access for each document and filter out inaccessible ones
+      const accessibleDocs: DocumentWithPath[] = [];
+
+      for (const doc of documents) {
+        try {
+          // Verify read access by attempting to get document metadata
+          const metadata = await this.apiClient.getDocumentMetadata(doc.id);
+          if (metadata.success) {
+            accessibleDocs.push({
+              document: doc,
+              folderPath,
+              isShared: this.isDocumentShared(doc)
+            });
+          } else {
+            this.logger.warn(`Skipping document "${doc.title}" - no access permission`);
+            this.skippedDocumentCount++;
+          }
+        } catch (error) {
+          this.logger.warn(`Skipping document "${doc.title}" - ${error instanceof Error ? error.message : String(error)}`);
+          this.skippedDocumentCount++;
+        }
+      }
+
+      let allDocuments: DocumentWithPath[] = accessibleDocs;
 
       // Recursively get documents from subfolders if requested
       if (recursive) {
