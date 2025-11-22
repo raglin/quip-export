@@ -358,8 +358,9 @@ export class ExportOrchestrator {
       const successCount = session.state.successfulExports;
       const failedCount = session.state.failedExports;
       const totalProcessed = successCount + failedCount;
-      const successRate = totalProcessed > 0 ? ((successCount / totalProcessed) * 100).toFixed(1) : '0.0';
-      
+      const successRate =
+        totalProcessed > 0 ? ((successCount / totalProcessed) * 100).toFixed(1) : '0.0';
+
       this.logger.info(
         `Export completed in ${duration.toFixed(1)}s - Success: ${successCount}/${totalProcessed} (${successRate}%)`
       );
